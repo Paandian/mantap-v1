@@ -2,11 +2,18 @@
 
 # Mantap.work Deployment Script
 # Usage: ./deploy.sh [environment]
-# Environments: dev (default), prod
+# Environments: prod (default), dev
+# 
+# IMPORTANT: This script is for PRODUCTION deployment only!
+# For development, run client and server separately (see docs/DEVELOPMENT.md)
+#
+# Examples:
+#   ./deploy.sh prod    - Deploy to production (default)
+#   ./deploy.sh dev     - Deploy for testing (not recommended)
 
 set -e
 
-ENV=${1:-dev}
+ENV=${1:-prod}
 echo "🚀 Starting deployment for environment: $ENV"
 
 # Colors for output
@@ -88,15 +95,25 @@ print_status "Managing server with PM2..."
 if command -v pm2 &> /dev/null; then
     if pm2 list | grep -q "mantap-api"; then
         print_status "Reloading existing PM2 process..."
-        pm2 reload mantap-api
+        pm2 reload mantap-api --update-env
     else
-        print_status "Starting new PM2 process..."
-        pm2 start ecosystem.config.js || pm2 start server.js --name mantap-api
+        print_status "Starting new PM2 process in $ENV mode..."
+        if [ "$ENV" = "prod" ]; then
+            # Production: use default production environment
+            pm2 start ecosystem.config.js
+        else
+            # Development: explicitly use development environment
+            pm2 start ecosystem.config.js --env development
+        fi
         pm2 save
     fi
 else
     print_warning "PM2 not found. Starting with node..."
-    npm start &
+    if [ "$ENV" = "prod" ]; then
+        NODE_ENV=production npm start &
+    else
+        NODE_ENV=development npm start &
+    fi
 fi
 
 cd ..
@@ -104,9 +121,18 @@ cd ..
 print_status "✅ Deployment completed successfully!"
 echo ""
 echo "📱 Frontend: Built and copied to server/public"
-echo "🔧 Backend: Running with PM2"
+echo "🔧 Backend: Running with PM2 in $ENV mode"
+echo ""
+echo "Verification:"
+echo "  curl https://your-domain.com/api/health    - Check API health"
 echo ""
 echo "Useful commands:"
-echo "  pm2 status        - Check server status"
-echo "  pm2 logs          - View server logs"
-echo "  pm2 restart all   - Restart all processes"
+echo "  pm2 status              - Check server status"
+echo "  pm2 logs mantap-api     - View server logs"
+echo "  pm2 restart mantap-api  - Restart the API"
+echo "  pm2 reload mantap-api --update-env  - Reload with new env vars"
+echo ""
+echo "⚠️  IMPORTANT: If you see 'Development Mode' message:"
+echo "   1. Check server/.env has NODE_ENV=production"
+echo "   2. Run: pm2 delete mantap-api && pm2 start ecosystem.config.js"
+echo "   3. Run: pm2 save"

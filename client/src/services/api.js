@@ -1,7 +1,10 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL: import.meta.env.VUE_APP_API_BASE || 'http://localhost:5000/api',
+    // Vite uses import.meta.env with VITE_ prefix
+    // Development: http://localhost:5000/api
+    // Production: /api (relative to current domain)
+    baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:5000/api',
     headers: {
         'Content-Type': 'application/json'
     }

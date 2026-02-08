@@ -6,12 +6,14 @@ module.exports = {
     autorestart: true,
     watch: false,
     max_memory_restart: '1G',
+    // Default environment is production for deployment
     env: {
-      NODE_ENV: 'development',
+      NODE_ENV: 'production',
       PORT: 5000
     },
-    env_production: {
-      NODE_ENV: 'production',
+    // Development environment (use: pm2 start ecosystem.config.js --env development)
+    env_development: {
+      NODE_ENV: 'development',
       PORT: 5000
     },
     error_file: './logs/err.log',
