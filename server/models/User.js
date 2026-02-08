@@ -138,7 +138,7 @@ class User {
       }
 
       // Get total count
-      const [countResult] = await pool.execute(
+      const [countResult] = await pool.query(
         `SELECT COUNT(*) as total FROM users u ${whereClause}`,
         params
       );
@@ -146,14 +146,14 @@ class User {
 
       // Get users
       const offset = (page - 1) * limit;
-      const [rows] = await pool.execute(
+      const [rows] = await pool.query(
         `SELECT u.id, u.email, u.name, u.role, u.status, u.avatar_url, 
                 u.last_login, u.email_verified, u.created_at, u.updated_at
          FROM users u 
          ${whereClause}
          ORDER BY u.${sortBy} ${sortOrder}
          LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
+        [...params, parseInt(limit), parseInt(offset)]
       );
 
       return {
@@ -165,11 +165,11 @@ class User {
     } catch (error) {
       // Fallback to basic query
       const offset = (page - 1) * limit;
-      const [rows] = await pool.execute(
+      const [rows] = await pool.query(
         'SELECT id, email, name, role, created_at, updated_at FROM users LIMIT ? OFFSET ?',
-        [limit, offset]
+        [parseInt(limit), parseInt(offset)]
       );
-      const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM users');
+      const [countResult] = await pool.query('SELECT COUNT(*) as total FROM users');
       
       return {
         users: rows,
