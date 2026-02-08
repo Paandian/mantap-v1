@@ -6,6 +6,7 @@ import AdminDashboardView from '../views/AdminDashboardView.vue'
 import TutorDashboard from '../views/dashboards/TutorDashboard.vue'
 import StudentDashboard from '../views/dashboards/StudentDashboard.vue'
 import ParentDashboard from '../views/dashboards/ParentDashboard.vue'
+import ProfileSettingsView from '../views/ProfileSettingsView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 // Role-based dashboard mapping
@@ -74,6 +75,13 @@ const router = createRouter({
                 const dashboardPath = roleDashboards[userRole] || '/'
                 next(dashboardPath)
             }
+        },
+        // Profile Settings (All authenticated users)
+        {
+            path: '/profile',
+            name: 'profile-settings',
+            component: ProfileSettingsView,
+            meta: { requiresAuth: true }
         },
         {
             path: '/:pathMatch(.*)*',

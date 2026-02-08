@@ -439,6 +439,107 @@ const exportUsers = async (req, res) => {
   }
 };
 
+// Get current user profile
+const getMyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Failed to fetch profile' });
+  }
+};
+
+// Update current user profile
+const updateMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, email, phone, bio, city, state, country } = req.body;
+
+    // Check if user exists
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update user basic info
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+
+    // Update user profile info
+    const profileData = {};
+    if (bio !== undefined) profileData.bio = bio;
+    if (city !== undefined) profileData.city = city;
+    if (state !== undefined) profileData.state = state;
+    if (country !== undefined) profileData.country = country;
+
+    // Update user data if there are changes
+    if (Object.keys(updateData).length > 0) {
+      await User.update(userId, updateData);
+    }
+
+    // Update profile data if there are changes
+    if (Object.keys(profileData).length > 0) {
+      await User.updateProfile(userId, profileData);
+    }
+
+    // Get updated user
+    const updatedUser = await User.findById(userId);
+
+    // Log activity
+    await User.logActivity(userId, 'profile_updated', 'user', userId, {
+      newValues: { ...updateData, ...profileData }
+    });
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+};
+
+// Upload avatar
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const userId = req.user.id;
+    
+    // Generate public URL for the avatar
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Update user's avatar_url
+    await User.update(userId, { avatar_url: avatarUrl });
+
+    // Get updated user
+    const updatedUser = await User.findById(userId);
+
+    // Log activity
+    await User.logActivity(userId, 'avatar_updated', 'user', userId, {
+      newValues: { avatar_url: avatarUrl }
+    });
+
+    res.json({
+      message: 'Avatar uploaded successfully',
+      avatarUrl: avatarUrl,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+};
+
 module.exports = {
   getUsers,
   getUserById,
@@ -451,5 +552,8 @@ module.exports = {
   bulkUpdateStatus,
   getUserStats,
   getUserActivity,
-  exportUsers
+  exportUsers,
+  getMyProfile,
+  updateMyProfile,
+  uploadAvatar
 };

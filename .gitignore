@@ -6,3 +6,9 @@ logs/
 dist/
 .vscode/
 .idea/
+
+# Ignore uploaded files (user-generated content)
+server/public/uploads/*
+!server/public/uploads/.gitkeep
+server/public/uploads/avatars/*
+!server/public/uploads/avatars/.gitkeep

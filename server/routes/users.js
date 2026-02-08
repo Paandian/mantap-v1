@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { uploadAvatar, handleMulterError } = require('../middleware/upload');
 const userController = require('../controllers/userController');
 
 // All routes require authentication
 router.use(authenticateToken);
+
+// Profile routes (for current user)
+router.get('/me/profile', userController.getMyProfile);
+router.put('/me/profile', userController.updateMyProfile);
+router.post('/me/avatar', uploadAvatar, handleMulterError, userController.uploadAvatar);
 
 // Get all users (Admin, Creator, Super-admin only)
 router.get('/', requireRole(['super-admin', 'admin', 'creator']), userController.getUsers);

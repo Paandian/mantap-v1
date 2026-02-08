@@ -21,6 +21,15 @@ const handleLogout = () => {
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
 }
+
+const getAvatarUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  // Remove '/api' from the base URL to get the server root
+  const baseUrl = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api'
+  const serverUrl = baseUrl.replace('/api', '')
+  return `${serverUrl}${url}`
+}
 </script>
 
 <template>
@@ -46,8 +55,14 @@ const toggleDropdown = () => {
           @click="toggleDropdown"
           class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-            <span class="text-indigo-600 font-semibold text-sm">
+          <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+            <img 
+              v-if="authStore.user?.avatar_url" 
+              :src="getAvatarUrl(authStore.user.avatar_url)" 
+              :alt="authStore.displayName"
+              class="w-full h-full object-cover"
+            />
+            <span v-else class="text-indigo-600 font-semibold text-sm">
               {{ authStore.userInitials }}
             </span>
           </div>
@@ -70,7 +85,7 @@ const toggleDropdown = () => {
           </div>
           
           <router-link 
-            to="/admin?tab=profile"
+            to="/profile"
             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             @click="showDropdown = false"
           >

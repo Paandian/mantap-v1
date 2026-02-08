@@ -64,6 +64,15 @@ const goToDashboard = () => {
   closeMobileMenu();
 };
 
+const getAvatarUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  // Remove '/api' from the base URL to get the server root
+  const baseUrl = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api'
+  const serverUrl = baseUrl.replace('/api', '')
+  return `${serverUrl}${url}`
+};
+
 // Initialize theme on mount
 if (isDarkMode.value) {
   document.documentElement.classList.add("dark");
@@ -201,8 +210,14 @@ if (isDarkMode.value) {
             <!-- User Menu -->
             <div class="relative group">
               <button class="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <span class="text-indigo-600 font-semibold text-sm">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                  <img 
+                    v-if="user?.avatar_url" 
+                    :src="getAvatarUrl(user.avatar_url)" 
+                    :alt="user?.name"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="text-indigo-600 font-semibold text-sm">
                     {{ user?.name?.charAt(0).toUpperCase() || 'U' }}
                   </span>
                 </div>
@@ -217,6 +232,12 @@ if (isDarkMode.value) {
                   <p class="text-sm font-medium text-gray-900 dark:text-white">{{ user?.name }}</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
                 </div>
+                <router-link
+                  to="/profile"
+                  class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Profile Settings
+                </router-link>
                 <button
                   @click="goToDashboard"
                   class="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
@@ -366,6 +387,14 @@ if (isDarkMode.value) {
               <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.name }}</p>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
             </div>
+            
+            <router-link
+              to="/profile"
+              @click="closeMobileMenu"
+              class="block w-full text-center jakarta bg-teal-600 text-white px-6 py-4 rounded-full font-bold text-lg hover:bg-teal-700 transition-colors duration-200 shadow-md"
+            >
+              Profile Settings
+            </router-link>
             
             <button
               @click="goToDashboard"
