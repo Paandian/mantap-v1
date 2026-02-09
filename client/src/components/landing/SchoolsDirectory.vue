@@ -30,45 +30,57 @@ const availableCities = computed(() => {
   return ppdCityData.value[selectedPPD.value] || []
 })
 
-// Group PPDs by State for the bottom listing
-const ppdsByState = computed(() => {
+// Define 16 Malaysian states
+const stateList = [
+  'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 
+  'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Sabah', 
+  'Sarawak', 'Selangor', 'Terengganu', 'W.P. Kuala Lumpur', 
+  'W.P. Labuan', 'W.P. Putrajaya'
+]
+
+// Group cities by State for the bottom listing
+const citiesByState = computed(() => {
   const groups = {}
+  
+  // Initialize all 16 states
+  stateList.forEach(state => {
+    groups[state] = new Set()
+  })
+  
+  // Group PPDs by state and collect cities
   ppdOptions.value.forEach(ppd => {
-    // Extract state from PPD name (e.g., "PPD Johor Bahru" -> "Johor")
-    let state = 'Lain-lain'
-    if (ppd.includes('Johor')) state = 'Johor'
-    else if (ppd.includes('Kedah')) state = 'Kedah'
-    else if (ppd.includes('Kelantan')) state = 'Kelantan'
-    else if (ppd.includes('Melaka')) state = 'Melaka'
-    else if (ppd.includes('Negeri Sembilan')) state = 'Negeri Sembilan'
-    else if (ppd.includes('Pahang')) state = 'Pahang'
-    else if (ppd.includes('Perak')) state = 'Perak'
-    else if (ppd.includes('Perlis')) state = 'Perlis'
-    else if (ppd.includes('Pulau Pinang') || ppd.includes('Penang')) state = 'Pulau Pinang'
-    else if (ppd.includes('Sabah')) state = 'Sabah'
-    else if (ppd.includes('Sarawak')) state = 'Sarawak'
-    else if (ppd.includes('Selangor')) state = 'Selangor'
-    else if (ppd.includes('Terengganu')) state = 'Terengganu'
-    else if (ppd.includes('Kuala Lumpur') || ppd.includes('WP KL') || ppd.includes('W.P. Kuala Lumpur')) state = 'W.P. Kuala Lumpur'
-    else if (ppd.includes('Labuan')) state = 'W.P. Labuan'
-    else if (ppd.includes('Putrajaya')) state = 'W.P. Putrajaya'
+    // Determine which state this PPD belongs to
+    let state = null
     
-    if (!groups[state]) {
-      groups[state] = { ppds: [], cities: new Set() }
+    // Check for each state
+    for (const s of stateList) {
+      if (ppd.includes(s)) {
+        state = s
+        break
+      }
     }
-    groups[state].ppds.push(ppd)
-    // Add cities from this PPD
-    if (ppdCityData.value[ppd]) {
-      ppdCityData.value[ppd].forEach(city => groups[state].cities.add(city))
+    
+    // Special cases
+    if (!state) {
+      if (ppd.includes('Kuala Lumpur') || ppd.includes('WP KL')) state = 'W.P. Kuala Lumpur'
+      else if (ppd.includes('Labuan')) state = 'W.P. Labuan'
+      else if (ppd.includes('Putrajaya')) state = 'W.P. Putrajaya'
+      else if (ppd.includes('Penang')) state = 'Pulau Pinang'
+    }
+    
+    // Add cities from this PPD to the state
+    if (state && ppdCityData.value[ppd]) {
+      ppdCityData.value[ppd].forEach(city => groups[state].add(city))
     }
   })
   
-  // Convert sets to arrays and sort
+  // Convert sets to sorted arrays
+  const result = {}
   Object.keys(groups).forEach(state => {
-    groups[state].cities = Array.from(groups[state].cities).sort()
+    result[state] = Array.from(groups[state]).sort()
   })
   
-  return groups
+  return result
 })
 
 // Reset city when PPD changes
@@ -291,34 +303,36 @@ onMounted(async () => {
       <!-- State and City Listings - Compact -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 fade-in dark:text-gray-300">
         <div 
-          v-for="(data, state) in ppdsByState" 
+          v-for="state in stateList" 
           :key="state"
           class="flex items-start space-x-3 p-2 rounded-lg transition-colors hover:bg-white/30"
         >
           <div class="text-2xl">💼</div>
           <div class="flex-1 min-w-0">
             <h4 
-              class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate" 
-              @click="viewPPDSchools(data.ppds[0])"
+              class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate"
             >
               {{ state }}
             </h4>
-            <div v-if="data.cities.length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
+            <div v-if="citiesByState[state] && citiesByState[state].length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
               <span 
-                v-for="(city, index) in (showAllCities[state] ? data.cities : data.cities.slice(0, 6))" 
+                v-for="(city, index) in (showAllCities[state] ? citiesByState[state] : citiesByState[state].slice(0, 6))" 
                 :key="city"
                 class="cursor-pointer hover:text-heritageTeal transition-colors"
                 @click="viewCitySchools(city)"
               >
-                {{ city }}<span v-if="index < (showAllCities[state] ? data.cities.length - 1 : Math.min(data.cities.length, 6) - 1)">, </span>
+                {{ city }}<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
               </span>
               <button 
-                v-if="data.cities.length > 6" 
+                v-if="citiesByState[state].length > 6" 
                 @click="toggleShowAllCities(state)"
                 class="text-heritageTeal hover:underline ml-1 font-medium"
               >
                 {{ showAllCities[state] ? 'kurang...' : 'lagi...' }}
               </button>
+            </div>
+            <div v-else class="text-xs text-gray-400 italic">
+              Tiada bandar
             </div>
           </div>
         </div>
