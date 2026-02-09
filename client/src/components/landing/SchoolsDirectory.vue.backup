@@ -26,35 +26,22 @@ const schoolCounts = ref({
 const cityToPPDMap = ref({})
 const negeriToPPDMap = ref({})
 
-// Jenis options from database (school types like SK, SJKC, SJKT, SM, etc.)
-const jenisOptions = ref([])
+// Jenis options (RENDAH/MENENGAH from database)
+const jenisOptions = [
+  { value: 'RENDAH', label: 'RENDAH' },
+  { value: 'MENENGAH', label: 'MENENGAH' }
+]
 
 // Available PPDs based on selected Negeri
 const availablePPDs = computed(() => {
-  if (!selectedNegeri.value || selectedCity.value) return []
+  if (!selectedNegeri.value) return []
   return negeriToPPDMap.value[selectedNegeri.value] || []
 })
 
 // Available cities based on selected PPD
 const availableCities = computed(() => {
-  if (!selectedPPD.value || selectedNegeri.value) return []
+  if (!selectedPPD.value) return []
   return ppdCityData.value[selectedPPD.value] || []
-})
-
-// Available cities based on selected Negeri (for negeri-dependent city filter)
-const availableCitiesByNegeri = computed(() => {
-  if (!selectedNegeri.value || selectedPPD.value) return []
-  
-  // Get all cities from all PPDs in this negeri
-  const allCities = new Set()
-  const ppdsInNegeri = negeriToPPDMap.value[selectedNegeri.value] || []
-  
-  ppdsInNegeri.forEach(ppd => {
-    const cities = ppdCityData.value[ppd] || []
-    cities.forEach(city => allCities.add(city))
-  })
-  
-  return Array.from(allCities).sort()
 })
 
 // Define 16 Malaysian states
@@ -85,46 +72,45 @@ const stateKeywords = {
   'W.P. Putrajaya': ['Putrajaya', 'WP Putrajaya']
 }
 
-// Group cities by State for the bottom listing - now tracks PPD for each city
+// Group cities by Negeri for the bottom listing
 const citiesByState = computed(() => {
   const groups = {}
-  const cityPPDMap = {} // Track which PPD each city belongs to for each state
+  const cityPPDMap = {} // Track which PPD each city belongs to for each negeri
   
-  // Initialize all 16 states with empty arrays
-  stateList.forEach(state => {
-    groups[state] = []
-    cityPPDMap[state] = {}
+  // Initialize with actual negeri data
+  negeriOptions.value.forEach(negeri => {
+    groups[negeri] = []
+    cityPPDMap[negeri] = {}
   })
   
-  // Group PPDs by state and collect cities
+  // Group PPDs by negeri and collect cities
   ppdOptions.value.forEach(ppd => {
-    let matchedState = null
-    
-    // Try to match PPD to state using keywords
-    for (const [state, keywords] of Object.entries(stateKeywords)) {
-      if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
-        matchedState = state
+    // Find which negeri this PPD belongs to
+    let matchedNegeri = null
+    for (const negeri of negeriOptions.value) {
+      if (negeriToPPDMap.value[negeri] && negeriToPPDMap.value[negeri].includes(ppd)) {
+        matchedNegeri = negeri
         break
       }
     }
     
-    // Add cities from this PPD to the matched state
-    if (matchedState && ppdCityData.value[ppd]) {
+    // Add cities from this PPD to the matched negeri
+    if (matchedNegeri && ppdCityData.value[ppd]) {
       const cities = ppdCityData.value[ppd]
       cities.forEach(city => {
         // Always add the city and track its PPD
-        groups[matchedState].push(city)
-        cityPPDMap[matchedState][city] = ppd
+        groups[matchedNegeri].push(city)
+        cityPPDMap[matchedNegeri][city] = ppd
       })
     }
   })
   
-  // Sort cities alphabetically for each state and remove duplicates while preserving first PPD
-  Object.keys(groups).forEach(state => {
+  // Sort cities alphabetically for each negeri and remove duplicates while preserving first PPD
+  Object.keys(groups).forEach(negeri => {
     const uniqueCities = []
     const seen = new Set()
     
-    groups[state].forEach(city => {
+    groups[negeri].forEach(city => {
       if (!seen.has(city)) {
         seen.add(city)
         uniqueCities.push(city)
@@ -132,13 +118,19 @@ const citiesByState = computed(() => {
     })
     
     uniqueCities.sort()
-    groups[state] = uniqueCities
+    groups[negeri] = uniqueCities
   })
   
   // Store the PPD mapping for getCityCount to use
   cityToPPDMap.value = cityPPDMap
   
   return groups
+})
+
+// Reset PPD and city when negeri changes
+watch(selectedNegeri, () => {
+  selectedPPD.value = ''
+  selectedCity.value = ''
 })
 
 // Reset city when PPD changes
@@ -164,26 +156,26 @@ const fetchFeaturedSchools = async () => {
 
 const fetchPPDData = async () => {
   try {
-    // Fetch schools to extract PPD and city data
+    // Fetch filter options from server first (includes negeri counts)
+    await schoolStore.fetchFilterOptions()
+    const filterData = schoolStore.filterOptions
+    
+    // Set negeri options from server
+    negeriOptions.value = filterData.negeris || []
+    
+    // Fetch schools for PPD-city and negeri-PPD relationships
     await schoolStore.fetchSchools({ limit: 10000 })
     const schools = schoolStore.schools
     
-    // Group cities by PPD and count schools
-    const data = {}
-    const ppds = new Set()
-    const countsByState = {}
-    const countsByCity = {}
-    const jenisSet = new Set() // Collect actual jenis values from database
+    const data = {} // ppd -> cities
     const negeriPPDMap = {} // negeri -> ppds
+    const countsByCity = {}
+    const ppdSet = new Set()
     
     schools.forEach(school => {
-      // Collect jenis data
-      if (school.jenis) {
-        jenisSet.add(school.jenis)
-      }
-      
+      // Collect PPD data and map to negeri
       if (school.ppd) {
-        ppds.add(school.ppd)
+        ppdSet.add(school.ppd)
         
         // Map PPD to negeri
         if (school.negeri) {
@@ -192,6 +184,70 @@ const fetchPPDData = async () => {
           }
           negeriPPDMap[school.negeri].add(school.ppd)
         }
+        
+        // Count by city
+        if (school.bandar) {
+          if (!data[school.ppd]) {
+            data[school.ppd] = new Set()
+          }
+          data[school.ppd].add(school.bandar)
+          
+          // Count schools per city
+          const cityKey = `${school.ppd}-${school.bandar}`
+          countsByCity[cityKey] = (countsByCity[cityKey] || 0) + 1
+        }
+      }
+    })
+    
+    console.log('Total schools from API:', schools.length)
+    console.log('Negeri options:', negeriOptions.value)
+    console.log('PPD count:', ppdSet.size)
+    
+    // Convert to arrays
+    ppdOptions.value = Array.from(ppdSet).sort()
+    
+    ppdCityData.value = {}
+    Object.keys(data).forEach(ppd => {
+      ppdCityData.value[ppd] = Array.from(data[ppd]).sort()
+    })
+    
+    Object.keys(negeriPPDMap).forEach(negeri => {
+      negeriPPDMap[negeri] = Array.from(negeriPPDMap[negeri]).sort()
+    })
+    
+    negeriToPPDMap.value = negeriPPDMap
+    
+    // Store counts - use server negeri counts (correct), client city counts
+    schoolCounts.value = {
+      byState: filterData.negeriCounts || {},
+      byCity: countsByCity
+    }
+    
+    console.log('Using server negeri counts:', filterData.negeriCounts)
+  } catch (error) {
+    console.error('Error fetching school data:', error)
+  }
+}
+        negeriPPDMap[school.negeri].add(school.ppd)
+      }
+    })
+    
+    // Convert to arrays
+    Object.keys(negeriPPDMap).forEach(negeri => {
+      negeriPPDMap[negeri] = Array.from(negeriPPDMap[negeri]).sort()
+    })
+    
+    negeriToPPDMap.value = negeriPPDMap
+    
+    // Group cities by PPD and count schools
+    const data = {}
+    const ppds = new Set()
+    const countsByState = {}
+    const countsByCity = {}
+    
+    schools.forEach(school => {
+      if (school.ppd) {
+        ppds.add(school.ppd)
         
         // Count by city
         if (school.bandar) {
@@ -237,13 +293,6 @@ const fetchPPDData = async () => {
     console.log('Total schools from API:', schools.length)
     console.log('Johor count:', countsByState['Johor'])
     
-    // Convert negeri to PPD mapping sets to arrays
-    Object.keys(negeriPPDMap).forEach(negeri => {
-      negeriPPDMap[negeri] = Array.from(negeriPPDMap[negeri]).sort()
-    })
-    
-    negeriToPPDMap.value = negeriPPDMap
-    
     // Convert sets to sorted arrays
     ppdOptions.value = Array.from(ppds).sort()
     ppdCityData.value = {}
@@ -254,15 +303,6 @@ const fetchPPDData = async () => {
     // Fetch negeri counts from server for accuracy
     await schoolStore.fetchFilterOptions()
     const filterData = schoolStore.filterOptions
-    
-    // Set negeri options from server
-    negeriOptions.value = filterData.negeris || []
-    console.log('Server filterData:', filterData)
-    console.log('Server negeris:', filterData.negeris)
-    
-    // Set jenis options from database
-    jenisOptions.value = Array.from(jenisSet).sort().map(jenis => ({ value: jenis, label: jenis }))
-    console.log('Setting negeriOptions to:', negeriOptions.value)
     
     // Store counts - use server negeri counts (accurate), client city counts
     schoolCounts.value = {
@@ -278,12 +318,14 @@ const handleSearch = () => {
   loading.value = true
   const query = {}
   if (searchQuery.value) query.search = searchQuery.value
+  if (selectedNegeri.value) query.negeri = selectedNegeri.value
   if (selectedPPD.value) query.ppd = selectedPPD.value
   if (selectedJenis.value) query.jenis = selectedJenis.value
   if (selectedCity.value) query.bandar = selectedCity.value
   
   // Clear filters on landing page before navigating
   searchQuery.value = ''
+  selectedNegeri.value = ''
   selectedPPD.value = ''
   selectedCity.value = ''
   selectedJenis.value = ''
@@ -356,6 +398,7 @@ const getSchoolImage = (school, index) => {
 
 onMounted(async () => {
   // Clear previous data to ensure fresh fetch
+  negeriOptions.value = []
   ppdOptions.value = []
   ppdCityData.value = {}
   showAllCities.value = {}
@@ -367,6 +410,7 @@ onMounted(async () => {
 
 onActivated(async () => {
   // Re-fetch data when component becomes active again (e.g., from back button)
+  negeriOptions.value = []
   ppdOptions.value = []
   ppdCityData.value = {}
   showAllCities.value = {}
@@ -448,64 +492,55 @@ onActivated(async () => {
         <div class="relative">
           <input 
             v-model="searchQuery"
-            @keyup.enter="handleSearch"
             type="text" 
             :placeholder="t('school.search_placeholder') || 'Cari nama sekolah, kod sekolah, bandar...'" 
-            class="w-full px-6 py-5 pr-20 text-lg rounded-2xl border-2 border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-4 focus:ring-heritageTeal/20 outline-none transition-all bg-white dark:bg-gray-700 dark:text-white shadow-lg"
+            class="w-full px-6 py-5 pl-14 text-lg rounded-2xl border-2 border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-4 focus:ring-heritageTeal/20 outline-none transition-all bg-white dark:bg-gray-700 dark:text-white shadow-lg"
           />
-          <button 
-            @click="handleSearch" 
-            class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-mantapOrange hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all"
-          >
-            <span class="flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-              Cari
-            </span>
-          </button>
+          <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
         </div>
       </div>
 
-      <!-- Filters Section -->
+      <!-- Filters Section with Search Button -->
       <div class="max-w-5xl mx-auto mb-12 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-center">
-           <div class="w-full">
-               <select 
-                 v-model="selectedNegeri"
-                 class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
-               >
-                 <option value="">Semua Negeri</option>
-                 <option v-for="negeri in negeriOptions" :key="negeri" :value="negeri">
-                   {{ negeri }}
-                 </option>
-               </select>
-            </div>
-            <div class="w-full">
-              <select 
-                v-model="selectedPPD"
-                :disabled="!selectedNegeri"
-                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                <option value="">Semua PPD</option>
-                <option v-for="ppd in availablePPDs" :key="ppd" :value="ppd">
-                  {{ ppd }}
+        <div class="flex flex-col md:flex-row gap-3 items-center">
+           <div class="md:w-1/4 w-full">
+             <select 
+               v-model="selectedNegeri"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
+             >
+               <option value="">Semua Negeri</option>
+               <option v-for="negeri in negeriOptions" :key="negeri" :value="negeri">
+                 {{ negeri }}
+               </option>
+             </select>
+           </div>
+           <div class="md:w-1/4 w-full">
+             <select 
+               v-model="selectedPPD"
+               :disabled="!selectedNegeri"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+             >
+               <option value="">Semua PPD</option>
+               <option v-for="ppd in availablePPDs" :key="ppd" :value="ppd">
+                 {{ ppd }}
+               </option>
+             </select>
+           </div>
+           <div class="md:w-1/4 w-full">
+             <select 
+               v-model="selectedCity"
+               :disabled="!selectedPPD"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+             >
+               <option value="">Semua Bandar</option>
+                <option v-for="city in availableCities" :key="city" :value="city">
+                  {{ toSentenceCase(city) }}
                 </option>
-              </select>
-            </div>
-            <div class="w-full">
-              <select 
-                v-model="selectedCity"
-                :disabled="!selectedNegeri"
-                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                <option value="">Semua Bandar</option>
-                 <option v-for="city in availableCitiesByNegeri" :key="city" :value="city">
-                    {{ toSentenceCase(city) }}
-                 </option>
-              </select>
-            </div>
-           <div class="w-full">
+             </select>
+           </div>
+           <div class="md:w-1/4 w-full">
              <select 
                v-model="selectedJenis"
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
@@ -516,39 +551,52 @@ onActivated(async () => {
                </option>
              </select>
            </div>
+           <div class="md:w-1/4 w-full">
+             <button 
+               @click="handleSearch" 
+               class="w-full bg-mantapOrange hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg text-sm shadow-md hover:shadow-lg transition-all"
+             >
+               <span class="flex items-center justify-center gap-2">
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                 </svg>
+                 Cari
+               </span>
+             </button>
+           </div>
         </div>
       </div>
 
-      <!-- State and City Listings - Compact -->
+      <!-- Negeri and City Listings - Compact -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 fade-in dark:text-gray-300">
         <div 
-          v-for="state in stateList" 
-          :key="state"
+          v-for="negeri in negeriOptions" 
+          :key="negeri"
           class="flex items-start space-x-3 p-2 rounded-lg transition-colors hover:bg-white/30"
         >
           <div class="text-2xl">💼</div>
           <div class="flex-1 min-w-0">
-            <h4 
-              class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate"
-              @click="viewStateSchools(state)"
+            <h1 
+              class="font-bold text-lg dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate"
+              @click="viewStateSchools(negeri)"
             >
-              {{ state }} ({{ schoolCounts.byState[state] || 0 }})
-            </h4>
-            <div v-if="citiesByState[state] && citiesByState[state].length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
+              {{ negeri }} ({{ schoolCounts.byState[negeri] || 0 }})
+            </h1>
+            <div v-if="citiesByState[negeri] && citiesByState[negeri].length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
                 <span 
-                v-for="(city, index) in (showAllCities[state] ? citiesByState[state] : citiesByState[state].slice(0, 6))" 
+                v-for="(city, index) in (showAllCities[negeri] ? citiesByState[negeri] : citiesByState[negeri].slice(0, 6))" 
                 :key="city"
                 class="cursor-pointer hover:text-heritageTeal transition-colors"
                 @click="viewCitySchools(city)"
               >
-                {{ toSentenceCase(city) }} ({{ getCityCount(state, city) }})<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
+                {{ toSentenceCase(city) }} ({{ getCityCount(negeri, city) }})<span v-if="index < (showAllCities[negeri] ? citiesByState[negeri].length - 1 : Math.min(citiesByState[negeri].length, 6) - 1)">, </span>
               </span>
               <button 
-                v-if="citiesByState[state].length > 6" 
-                @click="toggleShowAllCities(state)"
+                v-if="citiesByState[negeri].length > 6" 
+                @click="toggleShowAllCities(negeri)"
                 class="text-heritageTeal hover:underline ml-1 font-medium"
               >
-                {{ showAllCities[state] ? 'kurang...' : 'lagi...' }}
+                {{ showAllCities[negeri] ? 'kurang...' : 'lagi...' }}
               </button>
             </div>
             <div v-else class="text-xs text-gray-400 italic">

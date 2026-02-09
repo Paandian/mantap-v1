@@ -41,6 +41,23 @@
               Filters
             </h2>
 
+            <!-- Negeri (State) Filter -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                State (Negeri)
+              </label>
+              <select
+                v-model="filters.negeri"
+                @change="handleNegeriChange"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All States</option>
+                <option v-for="negeri in filterOptions.negeris" :key="negeri" :value="negeri">
+                  {{ negeri }}
+                </option>
+              </select>
+            </div>
+
             <!-- PPD (District) Filter -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -48,17 +65,18 @@
               </label>
               <select
                 v-model="filters.ppd"
+                :disabled="!filters.negeri"
                 @change="handlePPDChange"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">All Districts</option>
-                <option v-for="ppd in filterOptions.ppds" :key="ppd" :value="ppd">
+                <option v-for="ppd in availablePPDs" :key="ppd" :value="ppd">
                   {{ ppd }}
                 </option>
               </select>
             </div>
 
-            <!-- City Filter -->
+              <!-- City Filter -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 City (Bandar)
@@ -66,11 +84,11 @@
               <select
                 v-model="filters.bandar"
                 @change="applyFilters"
-                :disabled="!filters.ppd"
+                :disabled="!filters.ppd || !filters.negeri"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">All Cities</option>
-                <option v-for="city in availableCities" :key="city" :value="city">
+                <option v-for="city in availableCitiesByNegeri" :key="city" :value="city">
                   {{ city }}
                 </option>
               </select>
@@ -92,25 +110,44 @@
                   />
                   <span class="ml-2 text-gray-700 dark:text-gray-300">All Types</span>
                 </label>
-                <label class="flex items-center">
+                <label v-for="jenis in filterOptions.types" :key="jenis" class="flex items-center">
                   <input
                     v-model="filters.jenis"
                     type="radio"
-                    value="RENDAH"
+                    :value="jenis"
                     @change="applyFilters"
                     class="text-heritageTeal focus:ring-heritageTeal"
                   />
-                  <span class="ml-2 text-gray-700 dark:text-gray-300">RENDAH</span>
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">{{ jenis }}</span>
                 </label>
+              </div>
+            </div>
+
+            <!-- Peringkat (Level) Filter -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                School Level (Peringkat)
+              </label>
+              <div class="space-y-2">
                 <label class="flex items-center">
                   <input
-                    v-model="filters.jenis"
+                    v-model="filters.peringkat"
                     type="radio"
-                    value="MENENGAH"
+                    value=""
                     @change="applyFilters"
                     class="text-heritageTeal focus:ring-heritageTeal"
                   />
-                  <span class="ml-2 text-gray-700 dark:text-gray-300">MENENGAH</span>
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">All Levels</span>
+                </label>
+                <label v-for="peringkat in filterOptions.peringkat" :key="peringkat" class="flex items-center">
+                  <input
+                    v-model="filters.peringkat"
+                    type="radio"
+                    :value="peringkat"
+                    @change="applyFilters"
+                    class="text-heritageTeal focus:ring-heritageTeal"
+                  />
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">{{ peringkat }}</span>
                 </label>
               </div>
             </div>
@@ -328,6 +365,7 @@ const schoolStore = useSchoolStore()
 
 // State
 const searchQuery = ref('')
+const selectedNegeri = ref('')
 const sortBy = ref('nama_sekolah')
 
 // Computed
@@ -339,13 +377,36 @@ const loading = computed(() => schoolStore.loading)
 const filters = computed(() => schoolStore.filters)
 const filterOptions = computed(() => schoolStore.filterOptions)
 
-// State for PPD-cities data
+// State for PPD-cities data and negeri-PPD mapping
 const ppdCityData = ref({})
+const negeriToPPDMap = ref({})
+
+// Available PPDs based on selected Negeri
+const availablePPDs = computed(() => {
+  if (!filters.value.negeri) return []
+  return negeriToPPDMap.value[filters.value.negeri] || []
+})
 
 // Available cities based on selected PPD
 const availableCities = computed(() => {
-  if (!filters.value.ppd) return []
+  if (!filters.value.ppd || filters.value.negeri) return []
   return ppdCityData.value[filters.value.ppd] || []
+})
+
+// Available cities based on selected Negeri (for negeri-dependent city filter)
+const availableCitiesByNegeri = computed(() => {
+  if (!filters.value.negeri || filters.value.ppd) return []
+  
+  // Get all cities from all PPDs in this negeri
+  const allCities = new Set()
+  const ppdsInNegeri = negeriToPPDMap.value[filters.value.negeri] || []
+  
+  ppdsInNegeri.forEach(ppd => {
+    const cities = ppdCityData.value[ppd] || []
+    cities.forEach(city => allCities.add(city))
+  })
+  
+  return Array.from(allCities).sort()
 })
 
 // Methods
@@ -354,14 +415,28 @@ onMounted(async () => {
   const { search, ppd, bandar, jenis } = route.query
   
   // Apply filters from query params
-  if (search || ppd || bandar || jenis) {
+  if (search || ppd || bandar || jenis || peringkat) {
     searchQuery.value = search || ''
     schoolStore.setFilters({
       search: search || '',
+      negeri: ppd || '', // Temporarily use ppd to avoid undefined, will be fixed below
       ppd: ppd || '',
       bandar: bandar || '',
-      jenis: jenis || ''
+      jenis: jenis || '',
+      peringkat: peringkat || ''
     })
+    
+    // Apply negeri filter separately if provided
+    if (negeri) {
+      schoolStore.setFilters({
+        search: search || '',
+        negeri: negeri,
+        ppd: ppd || '',
+        bandar: bandar || '',
+        jenis: jenis || '',
+        peringkat: peringkat || ''
+      })
+    }
   }
   
   await Promise.all([
@@ -369,7 +444,7 @@ onMounted(async () => {
     schoolStore.fetchFilterOptions()
   ])
   
-  // Fetch PPD-city data
+  // Fetch PPD-city and negeri-PPD data
   await fetchPPDCityData()
 })
 
@@ -378,13 +453,24 @@ const fetchPPDCityData = async () => {
     await schoolStore.fetchSchools({ limit: 10000 })
     const schools = schoolStore.schools
     
-    const data = {}
+    const data = {} // ppd -> cities
+    const negeriPPDMap = {} // negeri -> ppds
+    
     schools.forEach(school => {
+      // PPD-city mapping
       if (school.ppd && school.bandar) {
         if (!data[school.ppd]) {
           data[school.ppd] = new Set()
         }
         data[school.ppd].add(school.bandar)
+      }
+      
+      // Negeri-PPD mapping
+      if (school.negeri && school.ppd) {
+        if (!negeriPPDMap[school.negeri]) {
+          negeriPPDMap[school.negeri] = new Set()
+        }
+        negeriPPDMap[school.negeri].add(school.ppd)
       }
     })
     
@@ -392,9 +478,21 @@ const fetchPPDCityData = async () => {
     Object.keys(data).forEach(ppd => {
       ppdCityData.value[ppd] = Array.from(data[ppd]).sort()
     })
+    
+    // Store negeri-PPD mapping for computed functions
+    negeriToPPDMap.value = {}
+    Object.keys(negeriPPDMap).forEach(negeri => {
+      negeriToPPDMap.value[negeri] = Array.from(negeriPPDMap[negeri]).sort()
+    })
   } catch (error) {
-    console.error('Error fetching PPD-city data:', error)
+    console.error('Error fetching filter data:', error)
   }
+}
+
+const handleNegeriChange = () => {
+  filters.value.ppd = ''
+  filters.value.bandar = ''
+  applyFilters()
 }
 
 const handlePPDChange = () => {

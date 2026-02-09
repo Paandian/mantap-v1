@@ -17,11 +17,13 @@ export const useSchoolStore = defineStore('schools', {
             bandar: ''
         },
         filterOptions: {
+            negeris: [],
             states: [],
             types: [],
             ppds: [],
             peringkat: ['Rendah', 'Menengah'],
-            cities: {}
+            cities: {},
+            negeriCounts: {}
         },
         loading: false,
         error: null,
@@ -78,11 +80,13 @@ export const useSchoolStore = defineStore('schools', {
             try {
                 const response = await api.get('/schools/filters/options')
                 this.filterOptions = {
+                    negeris: response.data.negeris,
                     states: response.data.states,
                     types: response.data.types,
                     ppds: response.data.ppds,
                     peringkat: response.data.peringkat,
-                    cities: response.data.cities || {}
+                    cities: response.data.cities || {},
+                    negeriCounts: response.data.negeriCounts || {}
                 }
             } catch (error) {
                 console.error('Error fetching filter options:', error)
