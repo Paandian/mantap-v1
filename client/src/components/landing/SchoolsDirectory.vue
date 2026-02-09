@@ -176,6 +176,9 @@ const fetchPPDData = async () => {
     })
     
     // Count each school directly based on its PPD
+    let totalCounted = 0
+    let schoolsWithoutPPD = 0
+    
     schools.forEach(school => {
       if (school.ppd) {
         // Find which state this PPD belongs to
@@ -183,11 +186,19 @@ const fetchPPDData = async () => {
           const keywords = stateKeywords[state] || [state]
           if (keywords.some(keyword => school.ppd.toLowerCase().includes(keyword.toLowerCase()))) {
             countsByState[state]++
+            totalCounted++
             break
           }
         }
+      } else {
+        schoolsWithoutPPD++
       }
     })
+    
+    console.log('Total schools counted by state:', totalCounted)
+    console.log('Schools without PPD:', schoolsWithoutPPD)
+    console.log('Total schools from API:', schools.length)
+    console.log('Johor count:', countsByState['Johor'])
     
     // Convert sets to sorted arrays
     ppdOptions.value = Array.from(ppds).sort()
@@ -247,24 +258,11 @@ const viewCitySchools = (city) => {
 
 const viewStateSchools = (state) => {
   loading.value = true
-  // Find the first PPD that matches this state to use as filter
-  const matchingPPD = ppdOptions.value.find(ppd => {
-    const keywords = stateKeywords[state] || [state]
-    return keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))
+  // Search by state name to find ALL schools in that state (across all PPDs)
+  router.push({
+    path: '/schools',
+    query: { search: state }
   })
-  
-  if (matchingPPD) {
-    router.push({
-      path: '/schools',
-      query: { ppd: matchingPPD }
-    })
-  } else {
-    // Fallback to search by state name
-    router.push({
-      path: '/schools',
-      query: { search: state }
-    })
-  }
 }
 
 // Helper function to get school count for a city in a specific state
