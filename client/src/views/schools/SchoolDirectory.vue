@@ -41,19 +41,19 @@
               Filters
             </h2>
 
-            <!-- State (Negeri) Filter -->
+            <!-- PPD (District) Filter -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                State (Negeri)
+                District (PPD)
               </label>
               <select
-                v-model="filters.negeri"
-                @change="handleStateChange"
+                v-model="filters.ppd"
+                @change="handlePPDChange"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
-                <option value="">All States</option>
-                <option v-for="state in filterOptions.states" :key="state" :value="state">
-                  {{ state }}
+                <option value="">All Districts</option>
+                <option v-for="ppd in filterOptions.ppds" :key="ppd" :value="ppd">
+                  {{ ppd }}
                 </option>
               </select>
             </div>
@@ -66,7 +66,7 @@
               <select
                 v-model="filters.bandar"
                 @change="applyFilters"
-                :disabled="!filters.negeri"
+                :disabled="!filters.ppd"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">All Cities</option>
@@ -76,60 +76,43 @@
               </select>
             </div>
 
-            <!-- Education Level -->
+            <!-- Jenis (Type) Filter -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Education Level
+                School Type (Jenis)
               </label>
               <div class="space-y-2">
                 <label class="flex items-center">
                   <input
-                    v-model="filters.peringkat"
+                    v-model="filters.jenis"
                     type="radio"
                     value=""
                     @change="applyFilters"
                     class="text-heritageTeal focus:ring-heritageTeal"
                   />
-                  <span class="ml-2 text-gray-700 dark:text-gray-300">All Levels</span>
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">All Types</span>
                 </label>
                 <label class="flex items-center">
                   <input
-                    v-model="filters.peringkat"
+                    v-model="filters.jenis"
                     type="radio"
-                    value="Rendah"
+                    value="RENDAH"
                     @change="applyFilters"
                     class="text-heritageTeal focus:ring-heritageTeal"
                   />
-                  <span class="ml-2 text-gray-700 dark:text-gray-300">Primary</span>
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">RENDAH</span>
                 </label>
                 <label class="flex items-center">
                   <input
-                    v-model="filters.peringkat"
+                    v-model="filters.jenis"
                     type="radio"
-                    value="Menengah"
+                    value="MENENGAH"
                     @change="applyFilters"
                     class="text-heritageTeal focus:ring-heritageTeal"
                   />
-                  <span class="ml-2 text-gray-700 dark:text-gray-300">Secondary</span>
+                  <span class="ml-2 text-gray-700 dark:text-gray-300">MENENGAH</span>
                 </label>
               </div>
-            </div>
-
-            <!-- School Type -->
-            <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                School Type
-              </label>
-              <select
-                v-model="filters.jenis"
-                @change="applyFilters"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">All Types</option>
-                <option v-for="type in filterOptions.types" :key="type" :value="type">
-                  {{ type }}
-                </option>
-              </select>
             </div>
 
             <!-- Claim Status -->
@@ -356,28 +339,27 @@ const loading = computed(() => schoolStore.loading)
 const filters = computed(() => schoolStore.filters)
 const filterOptions = computed(() => schoolStore.filterOptions)
 
-// State for cities data
-const stateCityData = ref({})
+// State for PPD-cities data
+const ppdCityData = ref({})
 
-// Available cities based on selected state
+// Available cities based on selected PPD
 const availableCities = computed(() => {
-  if (!filters.value.negeri) return []
-  return stateCityData.value[filters.value.negeri] || []
+  if (!filters.value.ppd) return []
+  return ppdCityData.value[filters.value.ppd] || []
 })
 
 // Methods
 onMounted(async () => {
   // Check for query parameters from landing page
-  const { search, negeri, bandar, peringkat, jenis } = route.query
+  const { search, ppd, bandar, jenis } = route.query
   
   // Apply filters from query params
-  if (search || negeri || bandar || peringkat || jenis) {
+  if (search || ppd || bandar || jenis) {
     searchQuery.value = search || ''
     schoolStore.setFilters({
       search: search || '',
-      negeri: negeri || '',
+      ppd: ppd || '',
       bandar: bandar || '',
-      peringkat: peringkat || '',
       jenis: jenis || ''
     })
   }
@@ -387,35 +369,35 @@ onMounted(async () => {
     schoolStore.fetchFilterOptions()
   ])
   
-  // Fetch state-city data
-  await fetchStateCityData()
+  // Fetch PPD-city data
+  await fetchPPDCityData()
 })
 
-const fetchStateCityData = async () => {
+const fetchPPDCityData = async () => {
   try {
-    const response = await schoolStore.fetchSchools({ limit: 10000 })
+    await schoolStore.fetchSchools({ limit: 10000 })
     const schools = schoolStore.schools
     
     const data = {}
     schools.forEach(school => {
-      if (school.negeri && school.bandar) {
-        if (!data[school.negeri]) {
-          data[school.negeri] = new Set()
+      if (school.ppd && school.bandar) {
+        if (!data[school.ppd]) {
+          data[school.ppd] = new Set()
         }
-        data[school.negeri].add(school.bandar)
+        data[school.ppd].add(school.bandar)
       }
     })
     
-    stateCityData.value = {}
-    Object.keys(data).forEach(state => {
-      stateCityData.value[state] = Array.from(data[state]).sort()
+    ppdCityData.value = {}
+    Object.keys(data).forEach(ppd => {
+      ppdCityData.value[ppd] = Array.from(data[ppd]).sort()
     })
   } catch (error) {
-    console.error('Error fetching state-city data:', error)
+    console.error('Error fetching PPD-city data:', error)
   }
 }
 
-const handleStateChange = () => {
+const handlePPDChange = () => {
   filters.value.bandar = ''
   applyFilters()
 }

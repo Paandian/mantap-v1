@@ -10,47 +10,69 @@ const schoolStore = useSchoolStore()
 
 const featuredSchools = ref([])
 const searchQuery = ref('')
-const selectedState = ref('')
-const selectedType = ref('')
+const selectedPPD = ref('')
+const selectedJenis = ref('')
 const selectedCity = ref('')
 const loading = ref(false)
 const showAllCities = ref({})
-const stateCityData = ref({})
+const ppdCityData = ref({})
+const ppdOptions = ref([])
 
-// Type options (Rendah/Menengah)
-const typeOptions = [
-  { value: 'Rendah', label: 'Sekolah Rendah' },
-  { value: 'Menengah', label: 'Sekolah Menengah' }
+// Jenis options (RENDAH/MENENGAH from database)
+const jenisOptions = [
+  { value: 'RENDAH', label: 'RENDAH' },
+  { value: 'MENENGAH', label: 'MENENGAH' }
 ]
 
-// State options (16 Malaysian states)
-const stateOptions = [
-  { value: 'Johor', label: 'Johor' },
-  { value: 'Kedah', label: 'Kedah' },
-  { value: 'Kelantan', label: 'Kelantan' },
-  { value: 'Melaka', label: 'Melaka' },
-  { value: 'Negeri Sembilan', label: 'Negeri Sembilan' },
-  { value: 'Pahang', label: 'Pahang' },
-  { value: 'Perak', label: 'Perak' },
-  { value: 'Perlis', label: 'Perlis' },
-  { value: 'Pulau Pinang', label: 'Pulau Pinang' },
-  { value: 'Sabah', label: 'Sabah' },
-  { value: 'Sarawak', label: 'Sarawak' },
-  { value: 'Selangor', label: 'Selangor' },
-  { value: 'Terengganu', label: 'Terengganu' },
-  { value: 'W.P. Kuala Lumpur', label: 'W.P. Kuala Lumpur' },
-  { value: 'W.P. Labuan', label: 'W.P. Labuan' },
-  { value: 'W.P. Putrajaya', label: 'W.P. Putrajaya' }
-]
-
-// Available cities based on selected state
+// Available cities based on selected PPD
 const availableCities = computed(() => {
-  if (!selectedState.value) return []
-  return stateCityData.value[selectedState.value] || []
+  if (!selectedPPD.value) return []
+  return ppdCityData.value[selectedPPD.value] || []
 })
 
-// Reset city when state changes
-watch(selectedState, () => {
+// Group PPDs by State for the bottom listing
+const ppdsByState = computed(() => {
+  const groups = {}
+  ppdOptions.value.forEach(ppd => {
+    // Extract state from PPD name (e.g., "PPD Johor Bahru" -> "Johor")
+    let state = 'Lain-lain'
+    if (ppd.includes('Johor')) state = 'Johor'
+    else if (ppd.includes('Kedah')) state = 'Kedah'
+    else if (ppd.includes('Kelantan')) state = 'Kelantan'
+    else if (ppd.includes('Melaka')) state = 'Melaka'
+    else if (ppd.includes('Negeri Sembilan')) state = 'Negeri Sembilan'
+    else if (ppd.includes('Pahang')) state = 'Pahang'
+    else if (ppd.includes('Perak')) state = 'Perak'
+    else if (ppd.includes('Perlis')) state = 'Perlis'
+    else if (ppd.includes('Pulau Pinang') || ppd.includes('Penang')) state = 'Pulau Pinang'
+    else if (ppd.includes('Sabah')) state = 'Sabah'
+    else if (ppd.includes('Sarawak')) state = 'Sarawak'
+    else if (ppd.includes('Selangor')) state = 'Selangor'
+    else if (ppd.includes('Terengganu')) state = 'Terengganu'
+    else if (ppd.includes('Kuala Lumpur') || ppd.includes('WP KL') || ppd.includes('W.P. Kuala Lumpur')) state = 'W.P. Kuala Lumpur'
+    else if (ppd.includes('Labuan')) state = 'W.P. Labuan'
+    else if (ppd.includes('Putrajaya')) state = 'W.P. Putrajaya'
+    
+    if (!groups[state]) {
+      groups[state] = { ppds: [], cities: new Set() }
+    }
+    groups[state].ppds.push(ppd)
+    // Add cities from this PPD
+    if (ppdCityData.value[ppd]) {
+      ppdCityData.value[ppd].forEach(city => groups[state].cities.add(city))
+    }
+  })
+  
+  // Convert sets to arrays and sort
+  Object.keys(groups).forEach(state => {
+    groups[state].cities = Array.from(groups[state].cities).sort()
+  })
+  
+  return groups
+})
+
+// Reset city when PPD changes
+watch(selectedPPD, () => {
   selectedCity.value = ''
 })
 
@@ -70,38 +92,44 @@ const fetchFeaturedSchools = async () => {
   }
 }
 
-const fetchStateCityData = async () => {
+const fetchPPDData = async () => {
   try {
-    // Fetch all schools to extract state-city mapping
-    const response = await schoolStore.fetchSchools({ limit: 10000 })
+    // Fetch schools to extract PPD and city data
+    await schoolStore.fetchSchools({ limit: 10000 })
     const schools = schoolStore.schools
     
-    // Group cities by state
+    // Group cities by PPD
     const data = {}
+    const ppds = new Set()
+    
     schools.forEach(school => {
-      if (school.negeri && school.bandar) {
-        if (!data[school.negeri]) {
-          data[school.negeri] = new Set()
+      if (school.ppd) {
+        ppds.add(school.ppd)
+        if (school.bandar) {
+          if (!data[school.ppd]) {
+            data[school.ppd] = new Set()
+          }
+          data[school.ppd].add(school.bandar)
         }
-        data[school.negeri].add(school.bandar)
       }
     })
     
     // Convert sets to sorted arrays
-    stateCityData.value = {}
-    Object.keys(data).forEach(state => {
-      stateCityData.value[state] = Array.from(data[state]).sort()
+    ppdOptions.value = Array.from(ppds).sort()
+    ppdCityData.value = {}
+    Object.keys(data).forEach(ppd => {
+      ppdCityData.value[ppd] = Array.from(data[ppd]).sort()
     })
   } catch (error) {
-    console.error('Error fetching state-city data:', error)
+    console.error('Error fetching PPD data:', error)
   }
 }
 
 const handleSearch = () => {
   const query = {}
   if (searchQuery.value) query.search = searchQuery.value
-  if (selectedState.value) query.negeri = selectedState.value
-  if (selectedType.value) query.peringkat = selectedType.value
+  if (selectedPPD.value) query.ppd = selectedPPD.value
+  if (selectedJenis.value) query.jenis = selectedJenis.value
   if (selectedCity.value) query.bandar = selectedCity.value
   
   router.push({
@@ -114,17 +142,17 @@ const viewSchool = (schoolId) => {
   router.push(`/schools/${schoolId}`)
 }
 
-const viewStateSchools = (state) => {
+const viewPPDSchools = (ppd) => {
   router.push({
     path: '/schools',
-    query: { negeri: state }
+    query: { ppd: ppd }
   })
 }
 
-const viewCitySchools = (city, state) => {
+const viewCitySchools = (city) => {
   router.push({
     path: '/schools',
-    query: { bandar: city, negeri: state }
+    query: { bandar: city }
   })
 }
 
@@ -145,10 +173,8 @@ const getSchoolImage = (school, index) => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    fetchStateCityData(),
-    fetchFeaturedSchools()
-  ])
+  await fetchPPDData()
+  fetchFeaturedSchools()
 })
 </script>
 
@@ -183,7 +209,7 @@ onMounted(async () => {
           </div>
           <h3 class="jakarta font-bold text-xl mb-2 dark:text-gray-900">{{ school.nama_sekolah }}</h3>
           <p class="jakarta text-gray-600 dark:text-gray-800 text-sm mb-4">
-            📍 {{ school.bandar || school.negeri }} • {{ school.peringkat === 'Rendah' ? 'Sekolah Rendah' : 'Sekolah Menengah' }}
+            📍 {{ school.bandar || school.ppd }} • {{ school.jenis }}
           </p>
           <div class="flex justify-between items-center">
             <span class="text-sm text-gray-500">{{ school.jumlah_murid || 0 }} students</span>
@@ -223,25 +249,24 @@ onMounted(async () => {
       </div>
 
       <!-- Filters Section -->
-      <div class="max-w-5xl mx-auto mb-16 fade-in bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
-        <h3 class="jakarta font-bold text-lg mb-4 text-center dark:text-white text-gray-600">Tapis Mengikut</h3>
-        <div class="flex flex-col md:flex-row gap-4">
+      <div class="max-w-5xl mx-auto mb-12 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+        <div class="flex flex-col md:flex-row gap-3">
            <div class="md:w-1/3">
              <select 
-               v-model="selectedState"
-               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white"
+               v-model="selectedPPD"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
              >
                <option value="">Semua Negeri</option>
-               <option v-for="state in stateOptions" :key="state.value" :value="state.value">
-                 {{ state.label }}
+               <option v-for="ppd in ppdOptions" :key="ppd" :value="ppd">
+                 {{ ppd }}
                </option>
              </select>
            </div>
            <div class="md:w-1/3">
              <select 
                v-model="selectedCity"
-               :disabled="!selectedState"
-               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+               :disabled="!selectedPPD"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
              >
                <option value="">Semua Bandar</option>
                <option v-for="city in availableCities" :key="city" :value="city">
@@ -251,58 +276,55 @@ onMounted(async () => {
            </div>
            <div class="md:w-1/3">
              <select 
-               v-model="selectedType"
-               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white"
+               v-model="selectedJenis"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
              >
-               <option value="">Semua Peringkat</option>
-               <option v-for="type in typeOptions" :key="type.value" :value="type.value">
-                 {{ type.label }}
+               <option value="">Semua Jenis</option>
+               <option v-for="jenis in jenisOptions" :key="jenis.value" :value="jenis.value">
+                 {{ jenis.label }}
                </option>
              </select>
            </div>
         </div>
       </div>
 
-      <!-- State and City Listings -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 fade-in dark:text-gray-300">
+      <!-- State and City Listings - Compact -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 fade-in dark:text-gray-300">
         <div 
-          v-for="state in stateOptions" 
-          :key="state.value"
-          class="flex items-start space-x-4 p-4 rounded-lg transition-colors hover:bg-white/50"
+          v-for="(data, state) in ppdsByState" 
+          :key="state"
+          class="flex items-start space-x-3 p-2 rounded-lg transition-colors hover:bg-white/30"
         >
-          <div class="text-3xl">🏫</div>
-          <div class="flex-1">
+          <div class="text-2xl">💼</div>
+          <div class="flex-1 min-w-0">
             <h4 
-              class="font-bold text-lg dark:text-white mb-3 cursor-pointer hover:text-heritageTeal transition-colors" 
-              @click="viewStateSchools(state.value)"
+              class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate" 
+              @click="viewPPDSchools(data.ppds[0])"
             >
-              {{ state.label }}
+              {{ state }}
             </h4>
-            <div v-if="stateCityData[state.value] && stateCityData[state.value].length > 0" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            <div v-if="data.cities.length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
               <span 
-                v-for="(city, index) in (showAllCities[state.value] ? stateCityData[state.value] : stateCityData[state.value].slice(0, 8))" 
+                v-for="(city, index) in (showAllCities[state] ? data.cities : data.cities.slice(0, 6))" 
                 :key="city"
                 class="cursor-pointer hover:text-heritageTeal transition-colors"
-                @click="viewCitySchools(city, state.value)"
+                @click="viewCitySchools(city)"
               >
-                {{ city }}<span v-if="index < (showAllCities[state.value] ? stateCityData[state.value].length - 1 : Math.min(stateCityData[state.value].length, 8) - 1)">, </span>
+                {{ city }}<span v-if="index < (showAllCities[state] ? data.cities.length - 1 : Math.min(data.cities.length, 6) - 1)">, </span>
               </span>
               <button 
-                v-if="stateCityData[state.value].length > 8" 
-                @click="toggleShowAllCities(state.value)"
+                v-if="data.cities.length > 6" 
+                @click="toggleShowAllCities(state)"
                 class="text-heritageTeal hover:underline ml-1 font-medium"
               >
-                {{ showAllCities[state.value] ? 'kurang...' : 'lagi...' }}
+                {{ showAllCities[state] ? 'kurang...' : 'lagi...' }}
               </button>
-            </div>
-            <div v-else class="text-sm text-gray-400 italic">
-              Tiada bandar tersedia
             </div>
           </div>
         </div>
       </div>
       
-      <div class="mt-8 text-center md:hidden">
+      <div class="mt-6 text-center md:hidden">
         <router-link to="/schools" class="jakarta text-heritageTeal font-bold hover:underline">{{ t('school.view_all') }} →</router-link>
       </div>
 
