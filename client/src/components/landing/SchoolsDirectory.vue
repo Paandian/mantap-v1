@@ -17,6 +17,10 @@ const loading = ref(false)
 const showAllCities = ref({})
 const ppdCityData = ref({})
 const ppdOptions = ref([])
+const schoolCounts = ref({
+  byState: {},
+  byCity: {}
+})
 
 // Jenis options (RENDAH/MENENGAH from database)
 const jenisOptions = [
@@ -125,20 +129,46 @@ const fetchPPDData = async () => {
     await schoolStore.fetchSchools({ limit: 10000 })
     const schools = schoolStore.schools
     
-    // Group cities by PPD
+    // Group cities by PPD and count schools
     const data = {}
     const ppds = new Set()
+    const countsByState = {}
+    const countsByCity = {}
     
     schools.forEach(school => {
       if (school.ppd) {
         ppds.add(school.ppd)
+        
+        // Count by city
         if (school.bandar) {
           if (!data[school.ppd]) {
             data[school.ppd] = new Set()
           }
           data[school.ppd].add(school.bandar)
+          
+          // Count schools per city
+          const cityKey = `${school.ppd}-${school.bandar}`
+          countsByCity[cityKey] = (countsByCity[cityKey] || 0) + 1
         }
       }
+    })
+    
+    // Count schools per state by aggregating city counts
+    stateList.forEach(state => {
+      countsByState[state] = 0
+      // Find all PPDs for this state
+      ppds.forEach(ppd => {
+        const keywords = stateKeywords[state] || [state]
+        if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
+          // Sum up all city counts for this PPD
+          if (data[ppd]) {
+            data[ppd].forEach(city => {
+              const cityKey = `${ppd}-${city}`
+              countsByState[state] += countsByCity[cityKey] || 0
+            })
+          }
+        }
+      })
     })
     
     // Convert sets to sorted arrays
@@ -147,6 +177,12 @@ const fetchPPDData = async () => {
     Object.keys(data).forEach(ppd => {
       ppdCityData.value[ppd] = Array.from(data[ppd]).sort()
     })
+    
+    // Store counts
+    schoolCounts.value = {
+      byState: countsByState,
+      byCity: countsByCity
+    }
   } catch (error) {
     console.error('Error fetching PPD data:', error)
   }
@@ -213,6 +249,22 @@ const viewStateSchools = (state) => {
   }
 }
 
+// Helper function to get school count for a city in a specific state
+const getCityCount = (state, city) => {
+  // Find which PPD this city belongs to based on the state
+  for (const ppd of ppdOptions.value) {
+    const keywords = stateKeywords[state] || [state]
+    if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
+      // Check if this city is in this PPD
+      if (ppdCityData.value[ppd] && ppdCityData.value[ppd].includes(city)) {
+        const cityKey = `${ppd}-${city}`
+        return schoolCounts.value.byCity[cityKey] || 0
+      }
+    }
+  }
+  return 0
+}
+
 const toSentenceCase = (str) => {
   if (!str) return str
   return str.toLowerCase().replace(/(^|\s)\S/g, (match) => match.toUpperCase())
@@ -276,6 +328,12 @@ onActivated(async () => {
            </p>
         </div>
         <router-link to="/schools" class="hidden md:block jakarta text-heritageTeal font-bold hover:underline">{{ t('school.view_all') }} →</router-link>
+      </div>
+
+      <!-- Featured Schools Title -->
+      <div class="mb-8 fade-in">
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Featured Schools</h3>
+        <p class="text-gray-600 dark:text-gray-400">Discover some of our highlighted schools</p>
       </div>
 
       <div v-if="featuredSchools.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -398,7 +456,7 @@ onActivated(async () => {
               class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate"
               @click="viewStateSchools(state)"
             >
-              {{ state }}
+              {{ state }} ({{ schoolCounts.byState[state] || 0 }})
             </h4>
             <div v-if="citiesByState[state] && citiesByState[state].length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
                 <span 
@@ -407,7 +465,7 @@ onActivated(async () => {
                 class="cursor-pointer hover:text-heritageTeal transition-colors"
                 @click="viewCitySchools(city)"
               >
-                {{ toSentenceCase(city) }}<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
+                {{ toSentenceCase(city) }} ({{ getCityCount(state, city) }})<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
               </span>
               <button 
                 v-if="citiesByState[state].length > 6" 
