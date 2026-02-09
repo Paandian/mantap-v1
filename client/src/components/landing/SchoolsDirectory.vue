@@ -21,6 +21,7 @@ const schoolCounts = ref({
   byState: {},
   byCity: {}
 })
+const cityToPPDMap = ref({})
 
 // Jenis options (RENDAH/MENENGAH from database)
 const jenisOptions = [
@@ -62,13 +63,15 @@ const stateKeywords = {
   'W.P. Putrajaya': ['Putrajaya', 'WP Putrajaya']
 }
 
-// Group cities by State for the bottom listing
+// Group cities by State for the bottom listing - now tracks PPD for each city
 const citiesByState = computed(() => {
   const groups = {}
+  const cityPPDMap = {} // Track which PPD each city belongs to for each state
   
   // Initialize all 16 states with empty arrays
   stateList.forEach(state => {
     groups[state] = []
+    cityPPDMap[state] = {}
   })
   
   // Group PPDs by state and collect cities
@@ -87,17 +90,31 @@ const citiesByState = computed(() => {
     if (matchedState && ppdCityData.value[ppd]) {
       const cities = ppdCityData.value[ppd]
       cities.forEach(city => {
-        if (!groups[matchedState].includes(city)) {
-          groups[matchedState].push(city)
-        }
+        // Always add the city and track its PPD
+        groups[matchedState].push(city)
+        cityPPDMap[matchedState][city] = ppd
       })
     }
   })
   
-  // Sort cities alphabetically for each state
+  // Sort cities alphabetically for each state and remove duplicates while preserving first PPD
   Object.keys(groups).forEach(state => {
-    groups[state].sort()
+    const uniqueCities = []
+    const seen = new Set()
+    
+    groups[state].forEach(city => {
+      if (!seen.has(city)) {
+        seen.add(city)
+        uniqueCities.push(city)
+      }
+    })
+    
+    uniqueCities.sort()
+    groups[state] = uniqueCities
   })
+  
+  // Store the PPD mapping for getCityCount to use
+  cityToPPDMap.value = cityPPDMap
   
   return groups
 })
@@ -153,22 +170,23 @@ const fetchPPDData = async () => {
       }
     })
     
-    // Count schools per state by aggregating city counts
+    // Count schools per state by aggregating all school records
     stateList.forEach(state => {
       countsByState[state] = 0
-      // Find all PPDs for this state
-      ppds.forEach(ppd => {
-        const keywords = stateKeywords[state] || [state]
-        if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
-          // Sum up all city counts for this PPD
-          if (data[ppd]) {
-            data[ppd].forEach(city => {
-              const cityKey = `${ppd}-${city}`
-              countsByState[state] += countsByCity[cityKey] || 0
-            })
+    })
+    
+    // Count each school directly based on its PPD
+    schools.forEach(school => {
+      if (school.ppd) {
+        // Find which state this PPD belongs to
+        for (const state of stateList) {
+          const keywords = stateKeywords[state] || [state]
+          if (keywords.some(keyword => school.ppd.toLowerCase().includes(keyword.toLowerCase()))) {
+            countsByState[state]++
+            break
           }
         }
-      })
+      }
     })
     
     // Convert sets to sorted arrays
@@ -251,16 +269,11 @@ const viewStateSchools = (state) => {
 
 // Helper function to get school count for a city in a specific state
 const getCityCount = (state, city) => {
-  // Find which PPD this city belongs to based on the state
-  for (const ppd of ppdOptions.value) {
-    const keywords = stateKeywords[state] || [state]
-    if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
-      // Check if this city is in this PPD
-      if (ppdCityData.value[ppd] && ppdCityData.value[ppd].includes(city)) {
-        const cityKey = `${ppd}-${city}`
-        return schoolCounts.value.byCity[cityKey] || 0
-      }
-    }
+  // Get the PPD this city belongs to from our mapping
+  const ppd = cityToPPDMap.value[state]?.[city]
+  if (ppd) {
+    const cityKey = `${ppd}-${city}`
+    return schoolCounts.value.byCity[cityKey] || 0
   }
   return 0
 }
