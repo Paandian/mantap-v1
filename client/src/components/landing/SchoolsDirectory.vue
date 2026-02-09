@@ -153,11 +153,18 @@ const fetchPPDData = async () => {
 }
 
 const handleSearch = () => {
+  loading.value = true
   const query = {}
   if (searchQuery.value) query.search = searchQuery.value
   if (selectedPPD.value) query.ppd = selectedPPD.value
   if (selectedJenis.value) query.jenis = selectedJenis.value
   if (selectedCity.value) query.bandar = selectedCity.value
+  
+  // Clear filters on landing page before navigating
+  searchQuery.value = ''
+  selectedPPD.value = ''
+  selectedCity.value = ''
+  selectedJenis.value = ''
   
   router.push({
     path: '/schools',
@@ -177,10 +184,16 @@ const viewPPDSchools = (ppd) => {
 }
 
 const viewCitySchools = (city) => {
+  loading.value = true
   router.push({
     path: '/schools',
     query: { bandar: city }
   })
+}
+
+const toSentenceCase = (str) => {
+  if (!str) return str
+  return str.toLowerCase().replace(/(^|\s)\S/g, (match) => match.toUpperCase())
 }
 
 const toggleShowAllCities = (state) => {
@@ -211,7 +224,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section id="schools" class="py-20 bg-softGreen/30 dark:bg-gray-900 transition-colors duration-300">
+  <section id="schools" class="py-20 bg-softGreen/30 dark:bg-gray-900 transition-colors duration-300 relative">
+    <!-- Loading Overlay -->
+    <div v-if="loading" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-heritageTeal mb-4"></div>
+        <p class="text-gray-700 dark:text-gray-300 font-medium">Mencari sekolah...</p>
+      </div>
+    </div>
+    
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-end mb-12 fade-in">
         <div>
@@ -301,9 +322,9 @@ onMounted(async () => {
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
              >
                <option value="">Semua Bandar</option>
-               <option v-for="city in availableCities" :key="city" :value="city">
-                 {{ city }}
-               </option>
+                <option v-for="city in availableCities" :key="city" :value="city">
+                  {{ toSentenceCase(city) }}
+                </option>
              </select>
            </div>
            <div class="md:w-1/3">
@@ -335,13 +356,13 @@ onMounted(async () => {
               {{ state }}
             </h4>
             <div v-if="citiesByState[state] && citiesByState[state].length > 0" class="text-xs text-gray-600 dark:text-gray-400 leading-snug">
-              <span 
+                <span 
                 v-for="(city, index) in (showAllCities[state] ? citiesByState[state] : citiesByState[state].slice(0, 6))" 
                 :key="city"
                 class="cursor-pointer hover:text-heritageTeal transition-colors"
                 @click="viewCitySchools(city)"
               >
-                {{ city }}<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
+                {{ toSentenceCase(city) }}<span v-if="index < (showAllCities[state] ? citiesByState[state].length - 1 : Math.min(citiesByState[state].length, 6) - 1)">, </span>
               </span>
               <button 
                 v-if="citiesByState[state].length > 6" 
