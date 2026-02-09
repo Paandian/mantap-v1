@@ -234,14 +234,26 @@ const getSchoolImage = (school, index) => {
   return placeholders[index % placeholders.length]
 }
 
+import { onActivated } from 'vue'
+
 onMounted(async () => {
+  // Clear previous data to ensure fresh fetch
+  ppdOptions.value = []
+  ppdCityData.value = {}
+  showAllCities.value = {}
+  
   await fetchPPDData()
   await fetchFeaturedSchools()
+})
+
+onActivated(async () => {
+  // Re-fetch data when component becomes active again (e.g., from back button)
+  ppdOptions.value = []
+  ppdCityData.value = {}
+  showAllCities.value = {}
   
-  // Debug: Log the data to verify it's loaded
-  console.log('PPD Options:', ppdOptions.value)
-  console.log('PPD City Data:', ppdCityData.value)
-  console.log('Cities by State:', citiesByState.value)
+  await fetchPPDData()
+  await fetchFeaturedSchools()
 })
 </script>
 
