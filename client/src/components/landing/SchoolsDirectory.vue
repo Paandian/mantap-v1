@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSchoolStore } from '@/stores/schools'
 import { useRouter } from 'vue-router'
@@ -234,13 +234,12 @@ const getSchoolImage = (school, index) => {
   return placeholders[index % placeholders.length]
 }
 
-import { onActivated } from 'vue'
-
 onMounted(async () => {
   // Clear previous data to ensure fresh fetch
   ppdOptions.value = []
   ppdCityData.value = {}
   showAllCities.value = {}
+  schoolStore.clearFilters()
   
   await fetchPPDData()
   await fetchFeaturedSchools()
@@ -251,6 +250,7 @@ onActivated(async () => {
   ppdOptions.value = []
   ppdCityData.value = {}
   showAllCities.value = {}
+  schoolStore.clearFilters()
   
   await fetchPPDData()
   await fetchFeaturedSchools()
