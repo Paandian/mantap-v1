@@ -318,10 +318,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useSchoolStore } from '@/stores/schools'
 
 const router = useRouter()
+const route = useRoute()
 const schoolStore = useSchoolStore()
 
 // State
@@ -339,6 +340,20 @@ const filterOptions = computed(() => schoolStore.filterOptions)
 
 // Methods
 onMounted(async () => {
+  // Check for query parameters from landing page
+  const { search, negeri, jenis, peringkat } = route.query
+  
+  // Apply filters from query params
+  if (search || negeri || jenis || peringkat) {
+    searchQuery.value = search || ''
+    schoolStore.setFilters({
+      search: search || '',
+      negeri: negeri || '',
+      jenis: jenis || '',
+      peringkat: peringkat || ''
+    })
+  }
+  
   await Promise.all([
     schoolStore.fetchSchools(),
     schoolStore.fetchFilterOptions()
