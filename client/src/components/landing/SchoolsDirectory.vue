@@ -332,10 +332,10 @@ onActivated(async () => {
         </div>
       </div>
 
-      <!-- Filters Section -->
-      <div class="max-w-5xl mx-auto mb-6 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
-        <div class="flex flex-col md:flex-row gap-3">
-           <div class="md:w-1/3">
+      <!-- Filters Section with Search Button -->
+      <div class="max-w-5xl mx-auto mb-12 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+        <div class="flex flex-col md:flex-row gap-3 items-center">
+           <div class="md:w-1/4 w-full">
              <select 
                v-model="selectedPPD"
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
@@ -346,7 +346,7 @@ onActivated(async () => {
                </option>
              </select>
            </div>
-           <div class="md:w-1/3">
+           <div class="md:w-1/4 w-full">
              <select 
                v-model="selectedCity"
                :disabled="!selectedPPD"
@@ -358,7 +358,7 @@ onActivated(async () => {
                 </option>
              </select>
            </div>
-           <div class="md:w-1/3">
+           <div class="md:w-1/4 w-full">
              <select 
                v-model="selectedJenis"
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white text-sm"
@@ -369,22 +369,20 @@ onActivated(async () => {
                </option>
              </select>
            </div>
+           <div class="md:w-1/4 w-full">
+             <button 
+               @click="handleSearch" 
+               class="w-full bg-mantapOrange hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg text-sm shadow-md hover:shadow-lg transition-all"
+             >
+               <span class="flex items-center justify-center gap-2">
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                 </svg>
+                 Cari
+               </span>
+             </button>
+           </div>
         </div>
-      </div>
-
-      <!-- Search Button -->
-      <div class="max-w-5xl mx-auto mb-12 fade-in">
-        <button 
-          @click="handleSearch" 
-          class="w-full bg-mantapOrange hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-        >
-          <span class="flex items-center justify-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-            Cari Sekolah
-          </span>
-        </button>
       </div>
 
       <!-- State and City Listings - Compact -->
