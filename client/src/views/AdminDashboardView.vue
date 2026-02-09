@@ -10,6 +10,7 @@ import DashboardStats from '../components/admin/DashboardStats.vue'
 import UserManagement from '../components/admin/UserManagement.vue'
 import QuickActions from '../components/admin/QuickActions.vue'
 import RecentActivity from '../components/admin/RecentActivity.vue'
+import SchoolDirectoryAdmin from '../components/schools/SchoolDirectoryAdmin.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -43,6 +44,8 @@ const currentView = computed(() => {
       return 'dashboard'
     case 'users':
       return 'users'
+    case 'schools':
+      return 'schools'
     default:
       return 'coming-soon'
   }
@@ -126,6 +129,9 @@ const handleLogout = async () => {
 
         <!-- Users Management View -->
         <UserManagement v-else-if="currentView === 'users'" />
+
+        <!-- School Directory View -->
+        <SchoolDirectoryAdmin v-else-if="currentView === 'schools'" />
 
         <!-- Coming Soon View -->
         <div v-else class="text-center py-20">

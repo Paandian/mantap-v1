@@ -8,6 +8,8 @@ import StudentDashboard from '../views/dashboards/StudentDashboard.vue'
 import ParentDashboard from '../views/dashboards/ParentDashboard.vue'
 import ProfileSettingsView from '../views/ProfileSettingsView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
+import SchoolDirectory from '../views/schools/SchoolDirectory.vue'
+import SchoolDetail from '../views/schools/SchoolDetail.vue'
 
 // Role-based dashboard mapping
 const roleDashboards = {
@@ -82,6 +84,17 @@ const router = createRouter({
             name: 'profile-settings',
             component: ProfileSettingsView,
             meta: { requiresAuth: true }
+        },
+        // School Directory (Public)
+        {
+            path: '/schools',
+            name: 'school-directory',
+            component: SchoolDirectory
+        },
+        {
+            path: '/schools/:id',
+            name: 'school-detail',
+            component: SchoolDetail
         },
         {
             path: '/:pathMatch(.*)*',

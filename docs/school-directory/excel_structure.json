@@ -1,0 +1,27 @@
+{
+  "columns": [
+    "Unnamed: 0",
+    "NEGERI",
+    "PPD",
+    "PERINGKAT",
+    "JENIS/LABEL",
+    "KODSEKOLAH",
+    "NAMASEKOLAH",
+    "ALAMATSURAT",
+    "POSKODSURAT",
+    "BANDARSURAT",
+    "NOTELEFON",
+    "NOFAX",
+    "EMAIL",
+    "LOKASI",
+    "BANTUAN",
+    "MURID",
+    "GURU",
+    "PRASEKOLAH",
+    "INTEGRASI",
+    "KOORDINATXX",
+    "KOORDINATYY"
+  ],
+  "total_schools": 0,
+  "sample_data": []
+}
