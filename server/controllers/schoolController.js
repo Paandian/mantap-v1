@@ -512,6 +512,32 @@ exports.bulkImportSchools = async (req, res) => {
                     import_batch: batchId
                 };
 
+                // Auto-populate NEGERI from PPD if not provided
+                if (!schoolData.negeri && schoolData.ppd) {
+                    if (schoolData.ppd.includes('Johor')) schoolData.negeri = 'Johor';
+                    else if (schoolData.ppd.includes('Kedah')) schoolData.negeri = 'Kedah';
+                    else if (schoolData.ppd.includes('Kelantan')) schoolData.negeri = 'Kelantan';
+                    else if (schoolData.ppd.includes('Melaka')) schoolData.negeri = 'Melaka';
+                    else if (schoolData.ppd.includes('Negeri Sembilan')) schoolData.negeri = 'Negeri Sembilan';
+                    else if (schoolData.ppd.includes('Pahang')) schoolData.negeri = 'Pahang';
+                    else if (schoolData.ppd.includes('Perak')) schoolData.negeri = 'Perak';
+                    else if (schoolData.ppd.includes('Perlis')) schoolData.negeri = 'Perlis';
+                    else if (schoolData.ppd.includes('Pulau Pinang') || schoolData.ppd.includes('Penang')) schoolData.negeri = 'Pulau Pinang';
+                    else if (schoolData.ppd.includes('Sabah')) schoolData.negeri = 'Sabah';
+                    else if (schoolData.ppd.includes('Sarawak')) schoolData.negeri = 'Sarawak';
+                    else if (schoolData.ppd.includes('Selangor')) schoolData.negeri = 'Selangor';
+                    else if (schoolData.ppd.includes('Terengganu')) schoolData.negeri = 'Terengganu';
+                    else if (schoolData.ppd.includes('Kuala Lumpur') || schoolData.ppd.includes('WP KL')) schoolData.negeri = 'W.P. Kuala Lumpur';
+                    else if (schoolData.ppd.includes('Labuan')) schoolData.negeri = 'W.P. Labuan';
+                    else if (schoolData.ppd.includes('Putrajaya')) schoolData.negeri = 'W.P. Putrajaya';
+                }
+
+                // Auto-populate PERINGKAT from JENIS if not provided
+                if (!schoolData.peringkat && schoolData.jenis) {
+                    if (schoolData.jenis === 'RENDAH') schoolData.peringkat = 'Rendah';
+                    else if (schoolData.jenis === 'MENENGAH') schoolData.peringkat = 'Menengah';
+                }
+
                 if (!schoolData.kod_sekolah || !schoolData.nama_sekolah) {
                     throw new Error('Missing required fields: kod_sekolah or nama_sekolah');
                 }
