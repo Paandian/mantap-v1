@@ -25,8 +25,8 @@ exports.getSchools = async (req, res) => {
         const params = [];
 
         if (search) {
-            whereClause += ' AND (nama_sekolah LIKE ? OR kod_sekolah LIKE ?)';
-            params.push(`%${search}%`, `%${search}%`);
+            whereClause += ' AND (nama_sekolah LIKE ? OR kod_sekolah LIKE ? OR ppd LIKE ? OR alamat_surat LIKE ? OR bandar LIKE ?)';
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
         }
 
         if (negeri) {
