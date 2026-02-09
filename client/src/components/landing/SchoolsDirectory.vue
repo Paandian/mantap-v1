@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSchoolStore } from '@/stores/schools'
 import { useRouter } from 'vue-router'
@@ -10,36 +10,63 @@ const schoolStore = useSchoolStore()
 
 const featuredSchools = ref([])
 const searchQuery = ref('')
-const selectedState = ref('')
-const selectedCategory = ref('')
+const selectedPPD = ref('')
+const selectedType = ref('')
+const selectedCity = ref('')
 const loading = ref(false)
+const showAllCities = ref({})
 
-const stateOptions = [
-  { value: 'Johor', label: 'Johor' },
-  { value: 'Kedah', label: 'Kedah' },
-  { value: 'Kelantan', label: 'Kelantan' },
-  { value: 'Melaka', label: 'Melaka' },
-  { value: 'Negeri Sembilan', label: 'Negeri Sembilan' },
-  { value: 'Pahang', label: 'Pahang' },
-  { value: 'Perak', label: 'Perak' },
-  { value: 'Perlis', label: 'Perlis' },
-  { value: 'Pulau Pinang', label: 'Pulau Pinang' },
-  { value: 'Sabah', label: 'Sabah' },
-  { value: 'Sarawak', label: 'Sarawak' },
-  { value: 'Selangor', label: 'Selangor' },
-  { value: 'Terengganu', label: 'Terengganu' },
-  { value: 'W.P. Kuala Lumpur', label: 'W.P. Kuala Lumpur' },
-  { value: 'W.P. Labuan', label: 'W.P. Labuan' },
-  { value: 'W.P. Putrajaya', label: 'W.P. Putrajaya' }
+// Type options (Rendah/Menengah)
+const typeOptions = [
+  { value: 'Rendah', label: 'Sekolah Rendah' },
+  { value: 'Menengah', label: 'Sekolah Menengah' }
 ]
 
-const categoryOptions = [
-  { value: 'SK', label: 'Sek. Kebangsaan' },
-  { value: 'SMK', label: 'Sek. Menengah' },
-  { value: 'SJKC', label: 'SJK(C)' },
-  { value: 'SJKT', label: 'SJKT' },
-  { value: 'SMJK', label: 'SMJK' }
-]
+// Computed properties for filter options from store
+const ppdOptions = computed(() => schoolStore.filterOptions.ppds || [])
+const citiesByPPD = computed(() => schoolStore.filterOptions.cities || {})
+
+// Available cities based on selected PPD
+const availableCities = computed(() => {
+  if (!selectedPPD.value) return []
+  return citiesByPPD.value[selectedPPD.value] || []
+})
+
+// Group PPDs by State for the bottom listing
+const ppdsByState = computed(() => {
+  const groups = {}
+  ppdOptions.value.forEach(ppd => {
+    // Extract state from PPD name (e.g., "PPD Johor Bahru" -> "Johor")
+    let state = 'Lain-lain'
+    if (ppd.includes('Johor')) state = 'Johor'
+    else if (ppd.includes('Kedah')) state = 'Kedah'
+    else if (ppd.includes('Kelantan')) state = 'Kelantan'
+    else if (ppd.includes('Melaka')) state = 'Melaka'
+    else if (ppd.includes('Negeri Sembilan')) state = 'Negeri Sembilan'
+    else if (ppd.includes('Pahang')) state = 'Pahang'
+    else if (ppd.includes('Perak')) state = 'Perak'
+    else if (ppd.includes('Perlis')) state = 'Perlis'
+    else if (ppd.includes('Pulau Pinang') || ppd.includes('Penang')) state = 'Pulau Pinang'
+    else if (ppd.includes('Sabah')) state = 'Sabah'
+    else if (ppd.includes('Sarawak')) state = 'Sarawak'
+    else if (ppd.includes('Selangor')) state = 'Selangor'
+    else if (ppd.includes('Terengganu')) state = 'Terengganu'
+    else if (ppd.includes('Kuala Lumpur') || ppd.includes('WP KL') || ppd.includes('W.P. Kuala Lumpur')) state = 'W.P. Kuala Lumpur'
+    else if (ppd.includes('Labuan')) state = 'W.P. Labuan'
+    else if (ppd.includes('Putrajaya')) state = 'W.P. Putrajaya'
+    
+    if (!groups[state]) {
+      groups[state] = []
+    }
+    groups[state].push(ppd)
+  })
+  return groups
+})
+
+// Reset city when PPD changes
+watch(selectedPPD, () => {
+  selectedCity.value = ''
+})
 
 const fetchFeaturedSchools = async () => {
   try {
@@ -60,8 +87,9 @@ const fetchFeaturedSchools = async () => {
 const handleSearch = () => {
   const query = {}
   if (searchQuery.value) query.search = searchQuery.value
-  if (selectedState.value) query.negeri = selectedState.value
-  if (selectedCategory.value) query.jenis = selectedCategory.value
+  if (selectedPPD.value) query.ppd = selectedPPD.value
+  if (selectedType.value) query.peringkat = selectedType.value
+  if (selectedCity.value) query.bandar = selectedCity.value
   
   router.push({
     path: '/schools',
@@ -73,11 +101,22 @@ const viewSchool = (schoolId) => {
   router.push(`/schools/${schoolId}`)
 }
 
-const viewStateSchools = (stateName) => {
+const viewPPDSchools = (ppd) => {
   router.push({
     path: '/schools',
-    query: { negeri: stateName }
+    query: { ppd: ppd }
   })
+}
+
+const viewCitySchools = (city) => {
+  router.push({
+    path: '/schools',
+    query: { bandar: city }
+  })
+}
+
+const toggleShowAllCities = (state) => {
+  showAllCities.value[state] = !showAllCities.value[state]
 }
 
 const getSchoolImage = (school, index) => {
@@ -92,7 +131,8 @@ const getSchoolImage = (school, index) => {
   return placeholders[index % placeholders.length]
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await schoolStore.fetchFilterOptions()
   fetchFeaturedSchools()
 })
 </script>
@@ -128,7 +168,7 @@ onMounted(() => {
           </div>
           <h3 class="jakarta font-bold text-xl mb-2 dark:text-gray-900">{{ school.nama_sekolah }}</h3>
           <p class="jakarta text-gray-600 dark:text-gray-800 text-sm mb-4">
-            📍 {{ school.bandar || school.negeri }} • {{ school.peringkat === 'Rendah' ? 'Sekolah Rendah' : 'Sekolah Menengah' }}
+            📍 {{ school.bandar || school.ppd }} • {{ school.peringkat === 'Rendah' ? 'Sekolah Rendah' : 'Sekolah Menengah' }}
           </p>
           <div class="flex justify-between items-center">
             <span class="text-sm text-gray-500">{{ school.jumlah_murid || 0 }} students</span>
@@ -149,7 +189,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="max-w-4xl mx-auto mb-16 fade-in bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+      <div class="max-w-5xl mx-auto mb-16 fade-in bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
         <h3 class="jakarta font-bold text-xl mb-4 text-center dark:text-white">Cari Mengikut Lokasi & Kategori</h3>
         <form @submit.prevent="handleSearch" class="flex flex-col md:flex-row gap-4">
            <div class="flex-grow">
@@ -160,25 +200,37 @@ onMounted(() => {
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
              />
            </div>
-           <div class="md:w-1/4">
+           <div class="md:w-48">
              <select 
-               v-model="selectedState"
+               v-model="selectedPPD"
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white"
              >
-               <option value="">{{ t('school.filters.state') }}</option>
-               <option v-for="state in stateOptions" :key="state.value" :value="state.value">
-                 {{ state.label }}
+               <option value="">Semua Daerah (PPD)</option>
+               <option v-for="ppd in ppdOptions" :key="ppd" :value="ppd">
+                 {{ ppd }}
                </option>
              </select>
            </div>
-           <div class="md:w-1/4">
+           <div class="md:w-40">
              <select 
-               v-model="selectedCategory"
+               v-model="selectedCity"
+               :disabled="!selectedPPD"
+               class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               <option value="">Semua Bandar</option>
+               <option v-for="city in availableCities" :key="city" :value="city">
+                 {{ city }}
+               </option>
+             </select>
+           </div>
+           <div class="md:w-44">
+             <select 
+               v-model="selectedType"
                class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-heritageTeal focus:ring-2 focus:ring-heritageTeal/20 outline-none bg-white dark:bg-gray-700 dark:text-white"
              >
-               <option value="">{{ t('school.filters.category') }}</option>
-               <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">
-                 {{ cat.label }}
+               <option value="">Semua Peringkat</option>
+               <option v-for="type in typeOptions" :key="type.value" :value="type.value">
+                 {{ type.label }}
                </option>
              </select>
            </div>
@@ -188,59 +240,34 @@ onMounted(() => {
         </form>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 fade-in dark:text-gray-300">
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('Johor')">
-          <div class="text-3xl">💼</div>
-          <div>
-            <h4 class="font-bold text-lg dark:text-white">Johor</h4>
-            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Johor Bahru, Batu Pahat, Kluang, Kota Tinggi, Kulai, Masai, Mersing, Muar, Pagoh, Pasir Gudang, Pontian, Skudai, Tangkak, Yong Peng
-            </p>
-          </div>
-        </div>
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('Kedah')">
-          <div class="text-3xl">💼</div>
-          <div>
-             <h4 class="font-bold text-lg dark:text-white">Kedah</h4>
-             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-               Alor Setar, Baling, Gurun, Jitra, Kuala Ketil, Kuala Nerang, Kulim, Langkawi, Pendang, Sik, Sungai Petani, Yan
-             </p>
-          </div>
-        </div>
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('Kelantan')">
-          <div class="text-3xl">💼</div>
-          <div>
-             <h4 class="font-bold text-lg dark:text-white">Kelantan</h4>
-             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-               Bachok, Gua Musang, Kota Bharu, Kuala Krai, Machang, Pasir Mas, Pasir Puteh, Tanah Merah, Tumpat, Wakaf Bharu
-             </p>
-          </div>
-        </div>
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('Selangor')">
-          <div class="text-3xl">💼</div>
-          <div>
-             <h4 class="font-bold text-lg dark:text-white">Selangor</h4>
-             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-               Ampang, Banting, Batu Caves, Cheras, Kajang, Klang, Pelabuhan Klang, Petaling Jaya, Puchong, Rawang, Semenyih, Shah Alam, Subang Jaya, Sungai Buloh
-             </p>
-          </div>
-        </div>
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('W.P. Kuala Lumpur')">
-          <div class="text-3xl">💼</div>
-          <div>
-             <h4 class="font-bold text-lg dark:text-white">W.P. Kuala Lumpur</h4>
-             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-               Bandar Tasik Selatan, Cheras, Kepong, Kuala Lumpur, Setapak, Wangsa Maju, Bangsar, Brickfields
-             </p>
-          </div>
-        </div>
-        <div class="flex items-start space-x-4 cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors" @click="viewStateSchools('Pulau Pinang')">
-          <div class="text-3xl">💼</div>
-          <div>
-             <h4 class="font-bold text-lg dark:text-white">Pulau Pinang</h4>
-             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-               Ayer Itam, Balik Pulau, Bayan Lepas, Bukit Mertajam, Butterworth, Georgetown, Kepala Batas, Nibong Tebal, Penang, Perai
-             </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 fade-in dark:text-gray-300">
+        <div 
+          v-for="(ppds, state) in ppdsByState" 
+          :key="state"
+          class="flex items-start space-x-4 p-3 rounded-lg transition-colors hover:bg-white/50"
+        >
+          <div class="text-3xl">🏫</div>
+          <div class="flex-1">
+            <h4 class="font-bold text-lg dark:text-white mb-2 cursor-pointer hover:text-heritageTeal transition-colors" @click="viewPPDSchools(ppds[0])">
+              {{ state }}
+            </h4>
+            <div class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              <span 
+                v-for="(ppd, index) in (showAllCities[state] ? ppds : ppds.slice(0, 4))" 
+                :key="ppd"
+                class="cursor-pointer hover:text-heritageTeal transition-colors"
+                @click="viewPPDSchools(ppd)"
+              >
+                {{ ppd.replace('PPD ', '').replace('PPD', '') }}<span v-if="index < (showAllCities[state] ? ppds.length - 1 : Math.min(ppds.length, 4) - 1)">, </span>
+              </span>
+              <button 
+                v-if="ppds.length > 4" 
+                @click="toggleShowAllCities(state)"
+                class="text-heritageTeal hover:underline ml-1 font-medium"
+              >
+                {{ showAllCities[state] ? '...kurang' : '...lagi' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>

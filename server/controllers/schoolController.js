@@ -15,6 +15,7 @@ exports.getSchools = async (req, res) => {
             peringkat = '',
             jenis = '',
             ppd = '',
+            bandar = '',
             claimed = '',
             sortBy = 'nama_sekolah',
             sortOrder = 'ASC'
@@ -46,6 +47,11 @@ exports.getSchools = async (req, res) => {
         if (ppd) {
             whereClause += ' AND ppd = ?';
             params.push(ppd);
+        }
+
+        if (bandar) {
+            whereClause += ' AND bandar = ?';
+            params.push(bandar);
         }
 
         if (claimed === 'true') {
@@ -127,7 +133,7 @@ exports.getSchoolById = async (req, res) => {
     }
 };
 
-// Get filter options (states, types, PPDs)
+// Get filter options (states, types, PPDs, cities)
 exports.getFilterOptions = async (req, res) => {
     try {
         // Get states
@@ -145,11 +151,26 @@ exports.getFilterOptions = async (req, res) => {
             'SELECT DISTINCT ppd FROM schools WHERE ppd IS NOT NULL ORDER BY ppd'
         );
 
+        // Get cities (bandar) grouped by PPD
+        const [cities] = await pool.execute(
+            'SELECT DISTINCT ppd, bandar FROM schools WHERE bandar IS NOT NULL AND ppd IS NOT NULL ORDER BY ppd, bandar'
+        );
+
+        // Group cities by PPD
+        const citiesByPPD = {};
+        cities.forEach(row => {
+            if (!citiesByPPD[row.ppd]) {
+                citiesByPPD[row.ppd] = [];
+            }
+            citiesByPPD[row.ppd].push(row.bandar);
+        });
+
         res.json({
             states: states.map(s => s.negeri),
             types: types.map(t => t.jenis),
             ppds: ppds.map(p => p.ppd),
-            peringkat: ['Rendah', 'Menengah']
+            peringkat: ['Rendah', 'Menengah'],
+            cities: citiesByPPD
         });
     } catch (error) {
         console.error('Error fetching filter options:', error);

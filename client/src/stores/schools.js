@@ -13,13 +13,15 @@ export const useSchoolStore = defineStore('schools', {
             negeri: '',
             peringkat: '',
             jenis: '',
-            ppd: ''
+            ppd: '',
+            bandar: ''
         },
         filterOptions: {
             states: [],
             types: [],
             ppds: [],
-            peringkat: ['Rendah', 'Menengah']
+            peringkat: ['Rendah', 'Menengah'],
+            cities: {}
         },
         loading: false,
         error: null,
@@ -79,7 +81,8 @@ export const useSchoolStore = defineStore('schools', {
                     states: response.data.states,
                     types: response.data.types,
                     ppds: response.data.ppds,
-                    peringkat: response.data.peringkat
+                    peringkat: response.data.peringkat,
+                    cities: response.data.cities || {}
                 }
             } catch (error) {
                 console.error('Error fetching filter options:', error)
@@ -98,7 +101,8 @@ export const useSchoolStore = defineStore('schools', {
                 negeri: '',
                 peringkat: '',
                 jenis: '',
-                ppd: ''
+                ppd: '',
+                bandar: ''
             }
         },
 

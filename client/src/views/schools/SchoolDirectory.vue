@@ -41,19 +41,37 @@
               Filters
             </h2>
 
-            <!-- State Filter -->
+            <!-- PPD (District) Filter -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                State
+                District (PPD)
               </label>
               <select
-                v-model="filters.negeri"
+                v-model="filters.ppd"
                 @change="applyFilters"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
-                <option value="">All States</option>
-                <option v-for="state in filterOptions.states" :key="state" :value="state">
-                  {{ state }}
+                <option value="">All Districts</option>
+                <option v-for="ppd in filterOptions.ppds" :key="ppd" :value="ppd">
+                  {{ ppd }}
+                </option>
+              </select>
+            </div>
+
+            <!-- City Filter -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                City
+              </label>
+              <select
+                v-model="filters.bandar"
+                @change="applyFilters"
+                :disabled="!filters.ppd"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-heritageTeal focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">All Cities</option>
+                <option v-for="city in availableCities" :key="city" :value="city">
+                  {{ city }}
                 </option>
               </select>
             </div>
@@ -338,19 +356,26 @@ const loading = computed(() => schoolStore.loading)
 const filters = computed(() => schoolStore.filters)
 const filterOptions = computed(() => schoolStore.filterOptions)
 
+// Available cities based on selected PPD
+const availableCities = computed(() => {
+  if (!filters.value.ppd) return []
+  return filterOptions.value.cities?.[filters.value.ppd] || []
+})
+
 // Methods
 onMounted(async () => {
   // Check for query parameters from landing page
-  const { search, negeri, jenis, peringkat } = route.query
+  const { search, ppd, bandar, peringkat, jenis } = route.query
   
   // Apply filters from query params
-  if (search || negeri || jenis || peringkat) {
+  if (search || ppd || bandar || peringkat || jenis) {
     searchQuery.value = search || ''
     schoolStore.setFilters({
       search: search || '',
-      negeri: negeri || '',
-      jenis: jenis || '',
-      peringkat: peringkat || ''
+      ppd: ppd || '',
+      bandar: bandar || '',
+      peringkat: peringkat || '',
+      jenis: jenis || ''
     })
   }
   
