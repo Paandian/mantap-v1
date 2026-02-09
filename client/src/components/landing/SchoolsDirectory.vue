@@ -42,45 +42,60 @@ const stateList = [
 const citiesByState = computed(() => {
   const groups = {}
   
-  // Initialize all 16 states
+  // Initialize all 16 states with empty arrays
   stateList.forEach(state => {
-    groups[state] = new Set()
+    groups[state] = []
   })
+  
+  // Create a mapping of keywords to states for better matching
+  const stateKeywords = {
+    'Johor': ['Johor', 'JB', 'Johor Bahru', 'Batu Pahat', 'Kluang', 'Muar', 'Segamat'],
+    'Kedah': ['Kedah', 'Alor Setar', 'Sungai Petani', 'Kulim', 'Langkawi'],
+    'Kelantan': ['Kelantan', 'Kota Bharu', 'Pasir Mas', 'Tanah Merah'],
+    'Melaka': ['Melaka', 'Malacca'],
+    'Negeri Sembilan': ['Negeri Sembilan', 'Seremban', 'Port Dickson'],
+    'Pahang': ['Pahang', 'Kuantan', 'Temerloh', 'Bentong'],
+    'Perak': ['Perak', 'Ipoh', 'Taiping', 'Teluk Intan'],
+    'Perlis': ['Perlis', 'Kangar'],
+    'Pulau Pinang': ['Pulau Pinang', 'Penang', 'Georgetown', 'Butterworth', 'Bayan Lepas'],
+    'Sabah': ['Sabah', 'Kota Kinabalu', 'Sandakan', 'Tawau'],
+    'Sarawak': ['Sarawak', 'Kuching', 'Miri', 'Sibu', 'Bintulu'],
+    'Selangor': ['Selangor', 'Shah Alam', 'Petaling', 'Klang', 'Gombak', 'Hulu Langat', 'Kuala Selangor', 'Sabak Bernam'],
+    'Terengganu': ['Terengganu', 'Kuala Terengganu', 'Dungun'],
+    'W.P. Kuala Lumpur': ['Kuala Lumpur', 'WP KL', 'W.P. Kuala Lumpur', 'Cheras', 'Kepong'],
+    'W.P. Labuan': ['Labuan', 'WP Labuan'],
+    'W.P. Putrajaya': ['Putrajaya', 'WP Putrajaya']
+  }
   
   // Group PPDs by state and collect cities
   ppdOptions.value.forEach(ppd => {
-    // Determine which state this PPD belongs to
-    let state = null
+    let matchedState = null
     
-    // Check for each state
-    for (const s of stateList) {
-      if (ppd.includes(s)) {
-        state = s
+    // Try to match PPD to state using keywords
+    for (const [state, keywords] of Object.entries(stateKeywords)) {
+      if (keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))) {
+        matchedState = state
         break
       }
     }
     
-    // Special cases
-    if (!state) {
-      if (ppd.includes('Kuala Lumpur') || ppd.includes('WP KL')) state = 'W.P. Kuala Lumpur'
-      else if (ppd.includes('Labuan')) state = 'W.P. Labuan'
-      else if (ppd.includes('Putrajaya')) state = 'W.P. Putrajaya'
-      else if (ppd.includes('Penang')) state = 'Pulau Pinang'
-    }
-    
-    // Add cities from this PPD to the state
-    if (state && ppdCityData.value[ppd]) {
-      ppdCityData.value[ppd].forEach(city => groups[state].add(city))
+    // Add cities from this PPD to the matched state
+    if (matchedState && ppdCityData.value[ppd]) {
+      const cities = ppdCityData.value[ppd]
+      cities.forEach(city => {
+        if (!groups[matchedState].includes(city)) {
+          groups[matchedState].push(city)
+        }
+      })
     }
   })
   
-  // Convert sets to sorted arrays
-  const result = {}
+  // Sort cities alphabetically for each state
   Object.keys(groups).forEach(state => {
-    result[state] = Array.from(groups[state]).sort()
+    groups[state].sort()
   })
   
-  return result
+  return groups
 })
 
 // Reset city when PPD changes
@@ -186,7 +201,12 @@ const getSchoolImage = (school, index) => {
 
 onMounted(async () => {
   await fetchPPDData()
-  fetchFeaturedSchools()
+  await fetchFeaturedSchools()
+  
+  // Debug: Log the data to verify it's loaded
+  console.log('PPD Options:', ppdOptions.value)
+  console.log('PPD City Data:', ppdCityData.value)
+  console.log('Cities by State:', citiesByState.value)
 })
 </script>
 
