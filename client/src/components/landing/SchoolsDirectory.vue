@@ -38,6 +38,26 @@ const stateList = [
   'W.P. Labuan', 'W.P. Putrajaya'
 ]
 
+// State keywords for matching PPDs to states
+const stateKeywords = {
+  'Johor': ['Johor', 'JB', 'Johor Bahru', 'Batu Pahat', 'Kluang', 'Muar', 'Segamat'],
+  'Kedah': ['Kedah', 'Alor Setar', 'Sungai Petani', 'Kulim', 'Langkawi'],
+  'Kelantan': ['Kelantan', 'Kota Bharu', 'Pasir Mas', 'Tanah Merah'],
+  'Melaka': ['Melaka', 'Malacca'],
+  'Negeri Sembilan': ['Negeri Sembilan', 'Seremban', 'Port Dickson'],
+  'Pahang': ['Pahang', 'Kuantan', 'Temerloh', 'Bentong'],
+  'Perak': ['Perak', 'Ipoh', 'Taiping', 'Teluk Intan'],
+  'Perlis': ['Perlis', 'Kangar'],
+  'Pulau Pinang': ['Pulau Pinang', 'Penang', 'Georgetown', 'Butterworth', 'Bayan Lepas'],
+  'Sabah': ['Sabah', 'Kota Kinabalu', 'Sandakan', 'Tawau'],
+  'Sarawak': ['Sarawak', 'Kuching', 'Miri', 'Sibu', 'Bintulu'],
+  'Selangor': ['Selangor', 'Shah Alam', 'Petaling', 'Klang', 'Gombak', 'Hulu Langat', 'Kuala Selangor', 'Sabak Bernam'],
+  'Terengganu': ['Terengganu', 'Kuala Terengganu', 'Dungun'],
+  'W.P. Kuala Lumpur': ['Kuala Lumpur', 'WP KL', 'W.P. Kuala Lumpur', 'Cheras', 'Kepong'],
+  'W.P. Labuan': ['Labuan', 'WP Labuan'],
+  'W.P. Putrajaya': ['Putrajaya', 'WP Putrajaya']
+}
+
 // Group cities by State for the bottom listing
 const citiesByState = computed(() => {
   const groups = {}
@@ -46,26 +66,6 @@ const citiesByState = computed(() => {
   stateList.forEach(state => {
     groups[state] = []
   })
-  
-  // Create a mapping of keywords to states for better matching
-  const stateKeywords = {
-    'Johor': ['Johor', 'JB', 'Johor Bahru', 'Batu Pahat', 'Kluang', 'Muar', 'Segamat'],
-    'Kedah': ['Kedah', 'Alor Setar', 'Sungai Petani', 'Kulim', 'Langkawi'],
-    'Kelantan': ['Kelantan', 'Kota Bharu', 'Pasir Mas', 'Tanah Merah'],
-    'Melaka': ['Melaka', 'Malacca'],
-    'Negeri Sembilan': ['Negeri Sembilan', 'Seremban', 'Port Dickson'],
-    'Pahang': ['Pahang', 'Kuantan', 'Temerloh', 'Bentong'],
-    'Perak': ['Perak', 'Ipoh', 'Taiping', 'Teluk Intan'],
-    'Perlis': ['Perlis', 'Kangar'],
-    'Pulau Pinang': ['Pulau Pinang', 'Penang', 'Georgetown', 'Butterworth', 'Bayan Lepas'],
-    'Sabah': ['Sabah', 'Kota Kinabalu', 'Sandakan', 'Tawau'],
-    'Sarawak': ['Sarawak', 'Kuching', 'Miri', 'Sibu', 'Bintulu'],
-    'Selangor': ['Selangor', 'Shah Alam', 'Petaling', 'Klang', 'Gombak', 'Hulu Langat', 'Kuala Selangor', 'Sabak Bernam'],
-    'Terengganu': ['Terengganu', 'Kuala Terengganu', 'Dungun'],
-    'W.P. Kuala Lumpur': ['Kuala Lumpur', 'WP KL', 'W.P. Kuala Lumpur', 'Cheras', 'Kepong'],
-    'W.P. Labuan': ['Labuan', 'WP Labuan'],
-    'W.P. Putrajaya': ['Putrajaya', 'WP Putrajaya']
-  }
   
   // Group PPDs by state and collect cities
   ppdOptions.value.forEach(ppd => {
@@ -189,6 +189,28 @@ const viewCitySchools = (city) => {
     path: '/schools',
     query: { bandar: city }
   })
+}
+
+const viewStateSchools = (state) => {
+  loading.value = true
+  // Find the first PPD that matches this state to use as filter
+  const matchingPPD = ppdOptions.value.find(ppd => {
+    const keywords = stateKeywords[state] || [state]
+    return keywords.some(keyword => ppd.toLowerCase().includes(keyword.toLowerCase()))
+  })
+  
+  if (matchingPPD) {
+    router.push({
+      path: '/schools',
+      query: { ppd: matchingPPD }
+    })
+  } else {
+    // Fallback to search by state name
+    router.push({
+      path: '/schools',
+      query: { search: state }
+    })
+  }
 }
 
 const toSentenceCase = (str) => {
@@ -352,6 +374,7 @@ onMounted(async () => {
           <div class="flex-1 min-w-0">
             <h4 
               class="font-bold text-base dark:text-white mb-1 cursor-pointer hover:text-heritageTeal transition-colors truncate"
+              @click="viewStateSchools(state)"
             >
               {{ state }}
             </h4>
