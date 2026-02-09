@@ -1,0 +1,34 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="schoolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d9488;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f766e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" fill="url(#schoolGradient)" rx="10"/>
+  
+  <!-- School Building Icon -->
+  <g transform="translate(50, 40)" fill="white">
+    <!-- Main Building -->
+    <rect x="20" y="40" width="60" height="60" fill="white"/>
+    <!-- Roof -->
+    <polygon points="50,20 10,40 90,40" fill="white"/>
+    <!-- Door -->
+    <rect x="42" y="80" width="16" height="20" fill="#0d9488"/>
+    <!-- Windows -->
+    <rect x="28" y="55" width="12" height="12" fill="#0d9488"/>
+    <rect x="60" y="55" width="12" height="12" fill="#0d9488"/>
+    <rect x="28" y="75" width="12" height="12" fill="#0d9488"/>
+    <rect x="60" y="75" width="12" height="12" fill="#0d9488"/>
+    <!-- Flag -->
+    <line x1="50" y1="20" x2="50" y2="5" stroke="white" stroke-width="2"/>
+    <polygon points="50,5 70,12 50,19" fill="white"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="165" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">
+    SCHOOL
+  </text>
+</svg>

@@ -21,7 +21,7 @@
               <!-- School Logo -->
               <div class="flex-shrink-0">
                 <img
-                  :src="school.logo_url || '/images/school-placeholder.png'"
+                  :src="school.logo_url || '/images/school-placeholder.svg'"
                   :alt="school.nama_sekolah"
                   class="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-lg bg-white"
                 />

@@ -25,6 +25,13 @@ Welcome to the comprehensive documentation for Mantap.work. This folder contains
 | [AUTHENTICATION.md](./AUTHENTICATION.md) | Authentication system details | Backend Developers |
 | [USER_MANAGEMENT.md](./USER_MANAGEMENT.md) | Role hierarchy and permissions | All Developers |
 
+### 📦 Feature Modules
+
+| Document | Description | Audience |
+|----------|-------------|----------|
+| [Profile Settings](./profile-settings/README.md) | User profile management | All Developers |
+| [School Directory](./school-directory/README.md) | School listing & management | All Developers |
+
 ### 💾 Database & API
 
 | Document | Description | Audience |
@@ -45,6 +52,14 @@ Welcome to the comprehensive documentation for Mantap.work. This folder contains
 | `../db/mantap_work_db.sql` | Initial database schema |
 | `../db/user_management_migration.sql` | User management enhancements |
 | `../db/quick_fix.sql` | Quick fixes for missing columns |
+| `../db/migrations/001_school_directory_schema.sql` | School directory tables |
+
+### 📦 Module Documentation
+
+| Module | Path | Status |
+|--------|------|--------|
+| Profile Settings | `./profile-settings/` | ✅ Complete |
+| School Directory | `./school-directory/` | ✅ Core Complete |
 
 ---
 
@@ -99,7 +114,14 @@ mantap/                                # Project root
 │   ├── AUTHENTICATION.md             # Auth system
 │   ├── USER_MANAGEMENT.md            # User roles
 │   ├── FRONTEND_ARCHITECTURE.md      # Frontend docs
-│   └── CHANGELOG.md                  # Version history
+│   ├── CHANGELOG.md                  # Version history
+│   ├── profile-settings/             # Profile module docs
+│   │   └── README.md
+│   └── school-directory/             # School module docs
+│       ├── README.md
+│       ├── PROGRESS_REPORT.md
+│       ├── IMPLEMENTATION_SUMMARY.md
+│       └── COMPLETE_SUMMARY.md
 └── ...
 ```
 
@@ -188,11 +210,12 @@ Before submitting:
 
 | Metric | Count |
 |--------|-------|
-| Total Documents | 9 |
-| Total Pages (est.) | 50+ |
-| Code Examples | 100+ |
-| API Endpoints Documented | 15+ |
-| Database Tables | 13 |
+| Total Documents | 15+ |
+| Total Pages (est.) | 80+ |
+| Code Examples | 150+ |
+| API Endpoints Documented | 30+ |
+| Database Tables | 20+ |
+| Feature Modules | 2 |
 
 ---
 

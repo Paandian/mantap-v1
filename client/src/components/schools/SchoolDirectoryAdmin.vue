@@ -142,7 +142,7 @@
                 <div class="flex items-center">
                   <div class="h-10 w-10 flex-shrink-0">
                     <img
-                      :src="school.logo_url || '/images/school-placeholder.png'"
+                      :src="school.logo_url || '/images/school-placeholder.svg'"
                       :alt="school.nama_sekolah"
                       class="h-10 w-10 rounded-lg object-cover"
                     />

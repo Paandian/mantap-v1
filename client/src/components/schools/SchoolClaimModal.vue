@@ -42,7 +42,7 @@
           <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
             <div class="flex items-center gap-4">
               <img
-                :src="school.logo_url || '/images/school-placeholder.png'"
+                :src="school.logo_url || '/images/school-placeholder.svg'"
                 :alt="school.nama_sekolah"
                 class="w-16 h-16 rounded-lg object-cover"
               />

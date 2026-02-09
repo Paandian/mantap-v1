@@ -180,23 +180,56 @@
 
 ---
 
+## 🔧 CURRENT WORK (In Progress)
+
+### ✅ Recently Completed (Today)
+
+#### 1. Profile Settings Module
+**Status:** ✅ Complete  
+**Date:** February 9, 2026
+
+**Features:**
+- Avatar upload with preview (5MB limit, JPEG/PNG/WebP)
+- Personal information management (name, email, phone, bio, location)
+- Password change functionality
+- Navigation integration (navbar + admin header)
+- Dark mode support
+- Responsive design
+
+**Files:**
+- `server/middleware/upload.js`
+- `client/src/views/ProfileSettingsView.vue`
+- Updated: `NavBar.vue`, `AdminHeader.vue`
+
+---
+
 ## 🔧 KNOWN ISSUES & TODO
 
-### 1. Search & Filters Enhancement
-**Priority:** Medium  
-**Status:** Basic working, needs improvements
+### 1. Admin Dashboard Filters (Priority: HIGH)
+**Status:** Needs Update  
+**Assigned:** Current Session
 
-**Current State:**
-- Search works but could be more robust
-- Filters work but could have better UX
-- No advanced search (by student count, location, etc.)
+**Issue:**
+- Filters don't match actual data columns
+- Need to use "Rendah/Menengah" (Primary/Secondary) instead of generic types
 
-**Suggested Improvements:**
-- [ ] Add real-time search (debounce already implemented)
-- [ ] Add "Clear All Filters" button (already exists)
-- [ ] Add filter badges showing active filters
-- [ ] Add sort options (by name, student count, state)
-- [ ] Add advanced filters (urban/rural, has preschool, etc.)
+**TODO:**
+- [x] Update Type filter to show: Rendah (Primary), Menengah (Secondary)
+- [ ] Add placeholder images for missing school logos
+- [ ] Integrate landing page with school directory data
+- [ ] Make landing page search functional
+- [ ] Update State/District listings to show (0) if no schools
+
+### 2. Landing Page Integration (Priority: HIGH)
+**Status:** In Progress  
+**Assigned:** Current Session
+
+**TODO:**
+- [ ] Use random featured schools from database
+- [ ] Add placeholder images for schools without logos
+- [ ] Make search module functional
+- [ ] Update State listings with actual counts
+- [ ] Update District listings with actual counts (show 0 if none)
 
 ### 2. School Claim Approval Workflow
 **Priority:** Medium  

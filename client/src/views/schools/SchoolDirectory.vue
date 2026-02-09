@@ -202,7 +202,7 @@
                 <!-- School Image -->
                 <div class="flex-shrink-0">
                   <img
-                    :src="school.logo_url || '/images/school-placeholder.png'"
+                    :src="school.logo_url || '/images/school-placeholder.svg'"
                     :alt="school.nama_sekolah"
                     class="w-24 h-24 md:w-32 md:h-32 rounded-lg object-cover bg-gray-100"
                   />
