@@ -319,7 +319,7 @@ onActivated(async () => {
 
       <!-- Search Section -->
       <div class="max-w-4xl mx-auto mb-8 fade-in">
-        <form @submit.prevent="handleSearch" class="relative">
+        <div class="relative">
           <input 
             v-model="searchQuery"
             type="text" 
@@ -329,14 +329,11 @@ onActivated(async () => {
           <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-mantapOrange text-white px-6 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-colors">
-            Cari
-          </button>
-        </form>
+        </div>
       </div>
 
       <!-- Filters Section -->
-      <div class="max-w-5xl mx-auto mb-12 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+      <div class="max-w-5xl mx-auto mb-6 fade-in bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
         <div class="flex flex-col md:flex-row gap-3">
            <div class="md:w-1/3">
              <select 
@@ -373,6 +370,21 @@ onActivated(async () => {
              </select>
            </div>
         </div>
+      </div>
+
+      <!-- Search Button -->
+      <div class="max-w-5xl mx-auto mb-12 fade-in">
+        <button 
+          @click="handleSearch" 
+          class="w-full bg-mantapOrange hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+        >
+          <span class="flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            Cari Sekolah
+          </span>
+        </button>
       </div>
 
       <!-- State and City Listings - Compact -->
