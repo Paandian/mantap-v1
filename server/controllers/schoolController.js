@@ -136,9 +136,9 @@ exports.getSchoolById = async (req, res) => {
 // Get filter options (states, types, PPDs, cities)
 exports.getFilterOptions = async (req, res) => {
     try {
-        // Get states
+        // Get states with counts
         const [states] = await pool.execute(
-            'SELECT DISTINCT negeri FROM schools ORDER BY negeri'
+            'SELECT negeri, COUNT(*) as count FROM schools WHERE negeri IS NOT NULL GROUP BY negeri ORDER BY negeri'
         );
 
         // Get school types
@@ -165,12 +165,22 @@ exports.getFilterOptions = async (req, res) => {
             citiesByPPD[row.ppd].push(row.bandar);
         });
 
+        // Create negeri counts object
+        const negeriCounts = {};
+        states.forEach(state => {
+            negeriCounts[state.negeri] = state.count;
+        });
+
+        console.log('States query result:', states);
+        console.log('Negeri counts to return:', negeriCounts);
         res.json({
+            negeris: states.map(s => s.negeri),
             states: states.map(s => s.negeri),
             types: types.map(t => t.jenis),
             ppds: ppds.map(p => p.ppd),
             peringkat: ['Rendah', 'Menengah'],
-            cities: citiesByPPD
+            cities: citiesByPPD,
+            negeriCounts: negeriCounts
         });
     } catch (error) {
         console.error('Error fetching filter options:', error);
@@ -440,14 +450,17 @@ exports.bulkImportSchools = async (req, res) => {
             console.log('First row:', data[0]);
         }
         
-        // Map the data with correct column names based on Excel structure
-        const schoolsData = data.filter(row => row['F'] && row['G']).map(row => ({
+        // Skip header rows and map the data with correct column names based on Excel structure
+        const schoolsData = data.filter((row, index) => {
+            // Skip first 2 rows (header and info rows) and rows without school data
+            return index > 1 && row['F'] && row['G'] && row['F'] !== 'KODSEKOLAH';
+        }).map(row => ({
             KODSEKOLAH: row['F'],        // Column F
             NAMASEKOLAH: row['G'],       // Column G
-            NEGERI: row['A'],            // Column A
-            PPD: row['B'],               // Column B
-            PERINGKAT: row['C'],         // Column C
-            JENIS: row['D'],             // Column D
+            NEGERI: row['B'],            // Column B (NEGERI)
+            PPD: row['C'],               // Column C (PPD)
+            PERINGKAT: row['D'],         // Column D (PERINGKAT)
+            JENIS: row['E'],             // Column E (JENIS/LABEL)
             ALAMATSURAT: row['H'],       // Column H
             POSKODSURAT: row['I'],       // Column I
             BANDARSURAT: row['J'],       // Column J
@@ -512,30 +525,30 @@ exports.bulkImportSchools = async (req, res) => {
                     import_batch: batchId
                 };
 
-                // Auto-populate NEGERI from PPD if not provided
-                if (!schoolData.negeri && schoolData.ppd) {
-                    if (schoolData.ppd.includes('Johor')) schoolData.negeri = 'Johor';
-                    else if (schoolData.ppd.includes('Kedah')) schoolData.negeri = 'Kedah';
-                    else if (schoolData.ppd.includes('Kelantan')) schoolData.negeri = 'Kelantan';
-                    else if (schoolData.ppd.includes('Melaka')) schoolData.negeri = 'Melaka';
-                    else if (schoolData.ppd.includes('Negeri Sembilan')) schoolData.negeri = 'Negeri Sembilan';
-                    else if (schoolData.ppd.includes('Pahang')) schoolData.negeri = 'Pahang';
-                    else if (schoolData.ppd.includes('Perak')) schoolData.negeri = 'Perak';
-                    else if (schoolData.ppd.includes('Perlis')) schoolData.negeri = 'Perlis';
-                    else if (schoolData.ppd.includes('Pulau Pinang') || schoolData.ppd.includes('Penang')) schoolData.negeri = 'Pulau Pinang';
-                    else if (schoolData.ppd.includes('Sabah')) schoolData.negeri = 'Sabah';
-                    else if (schoolData.ppd.includes('Sarawak')) schoolData.negeri = 'Sarawak';
-                    else if (schoolData.ppd.includes('Selangor')) schoolData.negeri = 'Selangor';
-                    else if (schoolData.ppd.includes('Terengganu')) schoolData.negeri = 'Terengganu';
-                    else if (schoolData.ppd.includes('Kuala Lumpur') || schoolData.ppd.includes('WP KL')) schoolData.negeri = 'W.P. Kuala Lumpur';
-                    else if (schoolData.ppd.includes('Labuan')) schoolData.negeri = 'W.P. Labuan';
-                    else if (schoolData.ppd.includes('Putrajaya')) schoolData.negeri = 'W.P. Putrajaya';
+                // Normalize NEGERI values (Column B already contains state names)
+                if (schoolData.negeri) {
+                    if (schoolData.negeri === 'WILAYAH PERSEKUTUAN KUALA LUMPUR') {
+                        schoolData.negeri = 'Kuala Lumpur';
+                    } else if (schoolData.negeri === 'WILAYAH PERSEKUTUAN LABUAN') {
+                        schoolData.negeri = 'Labuan';
+                    } else if (schoolData.negeri === 'WILAYAH PERSEKUTUAN PUTRAJAYA') {
+                        schoolData.negeri = 'Putrajaya';
+                    } else if (schoolData.negeri === 'PULAU PINANG') {
+                        schoolData.negeri = 'Pulau Pinang';
+                    }
+                    // For other states, capitalize properly
+                    else {
+                        schoolData.negeri = schoolData.negeri.charAt(0) + schoolData.negeri.slice(1).toLowerCase();
+                    }
                 }
 
-                // Auto-populate PERINGKAT from JENIS if not provided
-                if (!schoolData.peringkat && schoolData.jenis) {
-                    if (schoolData.jenis === 'RENDAH') schoolData.peringkat = 'Rendah';
-                    else if (schoolData.jenis === 'MENENGAH') schoolData.peringkat = 'Menengah';
+                // Normalize PERINGKAT values
+                if (schoolData.peringkat) {
+                    if (schoolData.peringkat.toLowerCase() === 'rendah') {
+                        schoolData.peringkat = 'Rendah';
+                    } else if (schoolData.peringkat.toLowerCase() === 'menengah') {
+                        schoolData.peringkat = 'Menengah';
+                    }
                 }
 
                 if (!schoolData.kod_sekolah || !schoolData.nama_sekolah) {

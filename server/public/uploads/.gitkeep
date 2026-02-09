@@ -1,3 +1,0 @@
-# This file ensures the uploads folder is tracked by Git
-# while ignoring all uploaded files
-# Uploads folder structure is preserved for deployment
