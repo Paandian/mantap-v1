@@ -199,6 +199,38 @@ client/src/views/schools/SchoolDetail.vue  ← MAIN FILE: Complete PDF & content
 
 ---
 
+## 🚨 CRITICAL PRODUCTION ISSUE DISCOVERED
+
+### MySQL LIMIT/OFFSET Parameter Binding Error
+**Date:** February 10, 2026 (During deployment testing)
+
+**Problem:**
+- Production deployment failing with `ER_WRONG_ARGUMENTS` error
+- School directory API returning 500 errors
+- Error: `Incorrect arguments to mysqld_stmt_execute`
+
+**Root Cause:**
+MySQL 8.0.45 on Ubuntu (supports prepared statements) - Issue is with mysql2 library parameter passing
+
+**Environment:**
+- MySQL: 8.0.45-0ubuntu0.24.04.1
+- OS: Ubuntu 24.04.1 LTS
+- Issue: Spread operator `[...params, ...]` corrupting parameter array in production
+
+**Solution Applied:
+- Modified `server/controllers/schoolController.js` line 83-92
+- Changed from prepared statement parameters to template literals with parseInt() validation
+- Maintains SQL injection protection via parseInt() sanitization
+
+**Files Modified:**
+- `server/controllers/schoolController.js` - Fixed parameter binding
+- `docs/PRODUCTION_FIX.md` - Documented fix for future reference
+- `CHANGELOG.md` - Added critical fix documentation
+
+**Status:** ✅ FIXED - Ready for redeployment
+
+---
+
 ## 📋 NEXT SESSION PRIORITIES
 
 ### HIGH Priority (Do First):

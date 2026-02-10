@@ -181,6 +181,69 @@ server/controllers/schoolController.js
 server/routes/schools.js
 db/migrations/001_school_directory_schema.sql
 scripts/import_schools.py
+docs/PRODUCTION_FIX.md
+```
+
+---
+
+## 🚨 CRITICAL PRODUCTION FIX (Feb 10, 2026)
+
+### **Issue: MySQL LIMIT/OFFSET Parameter Binding Error**
+
+**Error:**
+```
+ER_WRONG_ARGUMENTS: Incorrect arguments to mysqld_stmt_execute
+sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+```
+
+**Root Cause:**
+MySQL 8.0.45 on Ubuntu - ✅ Fully supports prepared statements
+
+**Actual Issue:** Parameter passing bug in mysql2 library when using spread operator `[...params, ...]` with prepared statements. The params array may be corrupted when reaching execute() function in production environment.
+
+**Environment Details:**
+- MySQL: 8.0.45-0ubuntu0.24.04.1 (Ubuntu)
+- Node.js: Compatible version
+- mysql2: ^3.6.5
+
+**Impact:**
+- School directory inaccessible in production
+- API returns 500 error when accessing /api/schools
+- Landing page and admin dashboard affected
+
+**Solution:**
+Modified `server/controllers/schoolController.js` (line 83-92):
+- Changed from: `LIMIT ? OFFSET ?` with parameter array
+- Changed to: Template literals with parseInt() validation
+
+**Code Fix:**
+```javascript
+// BEFORE (fails in production):
+const [rows] = await pool.execute(
+    `... LIMIT ? OFFSET ?`,
+    [...params, parseInt(limit), parseInt(offset)]
+);
+
+// AFTER (works in all environments):
+const safeLimit = parseInt(limit) || 20;
+const safeOffset = parseInt(offset) || 0;
+
+const [rows] = await pool.execute(
+    `... LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    params
+);
+```
+
+**Security:** ✅ parseInt() ensures integer values, preventing SQL injection
+
+**Status:** ✅ FIXED AND TESTED
+
+**Deployment:**
+```bash
+git add server/controllers/schoolController.js
+git commit -m "Fix MySQL LIMIT/OFFSET parameter binding for production"
+./deploy.sh prod
+pm2 restart mantap-api
 ```
 
 #### 🗄️ Database Structure

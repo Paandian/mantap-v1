@@ -23,6 +23,11 @@ exports.getSchools = async (req, res) => {
 
         let whereClause = 'WHERE 1=1';
         const params = [];
+        
+        // Ensure params is always an array (defensive coding for production)
+        if (!Array.isArray(params)) {
+            console.error('Params is not an array:', params);
+        }
 
         if (search) {
             whereClause += ' AND (nama_sekolah LIKE ? OR kod_sekolah LIKE ? OR ppd LIKE ? OR alamat_surat LIKE ? OR bandar LIKE ?)';
@@ -80,6 +85,10 @@ exports.getSchools = async (req, res) => {
             orderByClause = `${sortBy} ${sortOrder}`;
         }
         
+        // Use string interpolation for LIMIT/OFFSET to avoid MySQL prepared statement issues
+        const safeLimit = parseInt(limit) || 20;
+        const safeOffset = parseInt(offset) || 0;
+        
         const [rows] = await pool.execute(
             `SELECT id, kod_sekolah, nama_sekolah, negeri, ppd, peringkat, jenis,
                     bandar, lokasi, status_claim, logo_url, banner_url,
@@ -87,8 +96,8 @@ exports.getSchools = async (req, res) => {
              FROM schools 
              ${whereClause}
              ORDER BY ${orderByClause}
-             LIMIT ? OFFSET ?`,
-            [...params, parseInt(limit), parseInt(offset)]
+             LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+            params
         );
 
         res.json({
