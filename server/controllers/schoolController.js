@@ -69,13 +69,24 @@ exports.getSchools = async (req, res) => {
 
         // Get schools
         const offset = (page - 1) * limit;
+        
+        // Handle sortBy that may already contain direction (e.g., "nama_sekolah DESC")
+        let orderByClause;
+        if (sortBy.includes(' ')) {
+            // sortBy already has direction included (e.g., "nama_sekolah DESC")
+            orderByClause = sortBy;
+        } else {
+            // sortBy is just column name, append sortOrder
+            orderByClause = `${sortBy} ${sortOrder}`;
+        }
+        
         const [rows] = await pool.execute(
             `SELECT id, kod_sekolah, nama_sekolah, negeri, ppd, peringkat, jenis,
                     bandar, lokasi, status_claim, logo_url, banner_url,
                     jumlah_murid, jumlah_guru
              FROM schools 
              ${whereClause}
-             ORDER BY ${sortBy} ${sortOrder}
+             ORDER BY ${orderByClause}
              LIMIT ? OFFSET ?`,
             [...params, parseInt(limit), parseInt(offset)]
         );
@@ -171,8 +182,6 @@ exports.getFilterOptions = async (req, res) => {
             negeriCounts[state.negeri] = state.count;
         });
 
-        console.log('States query result:', states);
-        console.log('Negeri counts to return:', negeriCounts);
         res.json({
             negeris: states.map(s => s.negeri),
             states: states.map(s => s.negeri),

@@ -232,11 +232,6 @@ const fetchPPDData = async () => {
       }
     })
     
-    console.log('Total schools counted by state:', totalCounted)
-    console.log('Schools without PPD:', schoolsWithoutPPD)
-    console.log('Total schools from API:', schools.length)
-    console.log('Johor count:', countsByState['Johor'])
-    
     // Convert negeri to PPD mapping sets to arrays
     Object.keys(negeriPPDMap).forEach(negeri => {
       negeriPPDMap[negeri] = Array.from(negeriPPDMap[negeri]).sort()
@@ -257,16 +252,34 @@ const fetchPPDData = async () => {
     
     // Set negeri options from server
     negeriOptions.value = filterData.negeris || []
-    console.log('Server filterData:', filterData)
-    console.log('Server negeris:', filterData.negeris)
-    
+
     // Set jenis options from database
     jenisOptions.value = Array.from(jenisSet).sort().map(jenis => ({ value: jenis, label: jenis }))
-    console.log('Setting negeriOptions to:', negeriOptions.value)
     
-    // Store counts - use server negeri counts (accurate), client city counts
+    // Store counts - use server negeri counts (accurate), but normalize state names
+    // to match our stateList (handle casing differences like "Negeri sembilan" vs "Negeri Sembilan")
+    const normalizedNegeriCounts = {}
+    stateList.forEach(state => {
+      // Try exact match first, then case-insensitive match
+      if (filterData.negeriCounts && filterData.negeriCounts[state]) {
+        normalizedNegeriCounts[state] = filterData.negeriCounts[state]
+      } else if (filterData.negeriCounts) {
+        // Try to find a match ignoring case
+        const match = Object.keys(filterData.negeriCounts).find(
+          key => key.toLowerCase() === state.toLowerCase()
+        )
+        if (match) {
+          normalizedNegeriCounts[state] = filterData.negeriCounts[match]
+        } else {
+          normalizedNegeriCounts[state] = 0
+        }
+      } else {
+        normalizedNegeriCounts[state] = countsByState[state] || 0
+      }
+    })
+    
     schoolCounts.value = {
-      byState: filterData.negeriCounts || countsByState,
+      byState: normalizedNegeriCounts,
       byCity: countsByCity
     }
   } catch (error) {
@@ -315,10 +328,10 @@ const viewCitySchools = (city) => {
 
 const viewStateSchools = (state) => {
   loading.value = true
-  // Search by state name to find ALL schools in that state (across all PPDs)
+  // Filter by negeri (state) to find ALL schools in that state (across all PPDs)
   router.push({
     path: '/schools',
-    query: { search: state }
+    query: { negeri: state }
   })
 }
 

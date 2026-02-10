@@ -52,7 +52,6 @@ export const useSchoolStore = defineStore('schools', {
                 this.totalPages = response.data.totalPages
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to fetch schools'
-                console.error('Error fetching schools:', error)
             } finally {
                 this.loading = false
             }
@@ -69,7 +68,6 @@ export const useSchoolStore = defineStore('schools', {
                 return response.data.school
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to fetch school'
-                console.error('Error fetching school:', error)
             } finally {
                 this.loading = false
             }
@@ -89,7 +87,7 @@ export const useSchoolStore = defineStore('schools', {
                     negeriCounts: response.data.negeriCounts || {}
                 }
             } catch (error) {
-                console.error('Error fetching filter options:', error)
+                // Error handled silently
             }
         },
 
@@ -175,7 +173,7 @@ export const useSchoolStore = defineStore('schools', {
                 const response = await api.get('/schools/my/claims')
                 this.claims = response.data.claims
             } catch (error) {
-                console.error('Error fetching claims:', error)
+                // Error handled silently
             }
         },
 
@@ -217,7 +215,7 @@ export const useSchoolStore = defineStore('schools', {
                 const response = await api.get('/schools/admin/import-history')
                 this.importHistory = response.data.logs
             } catch (error) {
-                console.error('Error fetching import history:', error)
+                // Error handled silently
             }
         }
     }
