@@ -20,6 +20,8 @@ exports.getSchools = async (req, res) => {
             sortBy = 'nama_sekolah',
             sortOrder = 'ASC'
         } = req.query;
+        
+        console.log('getSchools called with query:', { search, negeri, ppd, bandar, jenis, peringkat });
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -35,8 +37,16 @@ exports.getSchools = async (req, res) => {
         }
 
         if (negeri) {
-            whereClause += ' AND negeri = ?';
-            params.push(negeri);
+            // Use LOWER() for case-insensitive matching to handle all variations
+            whereClause += ' AND (' +
+                'LOWER(negeri) = LOWER(?) OR ' +
+                '(LOWER(?) = "negeri sembilan" AND LOWER(negeri) LIKE "%negeri sembilan%") OR ' +
+                '(LOWER(?) = "pulau pinang" AND LOWER(negeri) LIKE "%pulau pinang%") OR ' +
+                '(LOWER(?) = "kuala lumpur" AND LOWER(negeri) LIKE "%kuala lumpur%") OR ' +
+                '(LOWER(?) = "labuan" AND LOWER(negeri) LIKE "%labuan%") OR ' +
+                '(LOWER(?) = "putrajaya" AND LOWER(negeri) LIKE "%putrajaya%")' +
+            ')';
+            params.push(negeri, negeri, negeri, negeri, negeri, negeri);
         }
 
         if (peringkat) {
@@ -88,6 +98,9 @@ exports.getSchools = async (req, res) => {
         // Use string interpolation for LIMIT/OFFSET to avoid MySQL prepared statement issues
         const safeLimit = parseInt(limit) || 20;
         const safeOffset = parseInt(offset) || 0;
+        
+        console.log('SQL Query:', `SELECT ... FROM schools ${whereClause} ORDER BY ${orderByClause} LIMIT ${safeLimit} OFFSET ${safeOffset}`);
+        console.log('SQL Params:', params);
         
         const [rows] = await pool.execute(
             `SELECT id, kod_sekolah, nama_sekolah, negeri, ppd, peringkat, jenis,
@@ -156,19 +169,27 @@ exports.getSchoolById = async (req, res) => {
 // Get filter options (states, types, PPDs, cities)
 exports.getFilterOptions = async (req, res) => {
     try {
-        // Get states with counts and normalize casing
+        // Get states with counts and normalize casing for all negeri names
         const [states] = await pool.execute(
             `SELECT 
-                CASE negeri
-                    WHEN 'Negeri sembilan' THEN 'Negeri Sembilan'
+                CASE 
+                    WHEN LOWER(negeri) LIKE '%negeri sembilan%' THEN 'Negeri Sembilan'
+                    WHEN LOWER(negeri) LIKE '%pulau pinang%' THEN 'Pulau Pinang'
+                    WHEN LOWER(negeri) LIKE '%kuala lumpur%' THEN 'Kuala Lumpur'
+                    WHEN LOWER(negeri) LIKE '%labuan%' THEN 'Labuan'
+                    WHEN LOWER(negeri) LIKE '%putrajaya%' THEN 'Putrajaya'
                     ELSE negeri
                 END as negeri, 
                 COUNT(*) as count 
             FROM schools 
             WHERE negeri IS NOT NULL 
             GROUP BY 
-                CASE negeri
-                    WHEN 'Negeri sembilan' THEN 'Negeri Sembilan'
+                CASE 
+                    WHEN LOWER(negeri) LIKE '%negeri sembilan%' THEN 'Negeri Sembilan'
+                    WHEN LOWER(negeri) LIKE '%pulau pinang%' THEN 'Pulau Pinang'
+                    WHEN LOWER(negeri) LIKE '%kuala lumpur%' THEN 'Kuala Lumpur'
+                    WHEN LOWER(negeri) LIKE '%labuan%' THEN 'Labuan'
+                    WHEN LOWER(negeri) LIKE '%putrajaya%' THEN 'Putrajaya'
                     ELSE negeri
                 END
             ORDER BY negeri`

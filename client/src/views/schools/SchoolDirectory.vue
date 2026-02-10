@@ -400,6 +400,9 @@ const sortBy = ref('nama_sekolah')
 const loading = ref(false)
 const itemsPerPage = ref(50)
 
+// Flag to prevent watchers from clearing filters during initial load
+let isInitialLoad = true
+
 // Store total schools count (always shows in hero, never changes)
 const totalSchoolsAll = ref(0)
 
@@ -512,19 +515,26 @@ const availableCitiesByNegeri = computed(() => {
   return Array.from(allCities).sort()
 })
 
-// Watchers - Same as landing page
+// Watchers - Only clear dependent filters when changed by user (not on initial load)
 watch(selectedPPD, () => {
-  selectedCity.value = ''
+  if (!isInitialLoad) {
+    selectedCity.value = ''
+    applyFilters()
+  }
 })
 
 watch(selectedNegeri, () => {
-  selectedPPD.value = ''
-  selectedCity.value = ''
-  applyFilters()
+  if (!isInitialLoad) {
+    selectedPPD.value = ''
+    selectedCity.value = ''
+    applyFilters()
+  }
 })
 
-watch([selectedPPD, selectedCity, selectedJenis, selectedPeringkat], () => {
-  applyFilters()
+watch([selectedJenis, selectedPeringkat], () => {
+  if (!isInitialLoad) {
+    applyFilters()
+  }
 })
 
 // Methods
@@ -674,5 +684,8 @@ onMounted(async () => {
     // Initial fetch with default items per page
     await schoolStore.fetchSchools({ page: 1, limit: itemsPerPage.value })
   }
+  
+  // Mark initial load complete after all setup
+  isInitialLoad = false
 })
 </script>
