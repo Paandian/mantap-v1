@@ -156,9 +156,22 @@ exports.getSchoolById = async (req, res) => {
 // Get filter options (states, types, PPDs, cities)
 exports.getFilterOptions = async (req, res) => {
     try {
-        // Get states with counts
+        // Get states with counts and normalize casing
         const [states] = await pool.execute(
-            'SELECT negeri, COUNT(*) as count FROM schools WHERE negeri IS NOT NULL GROUP BY negeri ORDER BY negeri'
+            `SELECT 
+                CASE negeri
+                    WHEN 'Negeri sembilan' THEN 'Negeri Sembilan'
+                    ELSE negeri
+                END as negeri, 
+                COUNT(*) as count 
+            FROM schools 
+            WHERE negeri IS NOT NULL 
+            GROUP BY 
+                CASE negeri
+                    WHEN 'Negeri sembilan' THEN 'Negeri Sembilan'
+                    ELSE negeri
+                END
+            ORDER BY negeri`
         );
 
         // Get school types
