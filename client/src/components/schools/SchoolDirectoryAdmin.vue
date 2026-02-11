@@ -25,6 +25,18 @@
           </button>
         </div>
         
+        <!-- Manage Backups -->
+        <button
+          @click="showBackupManagement = true"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          title="Manage SQL Backups"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Backups
+        </button>
+
         <!-- Legacy Import (Hidden but accessible) -->
         <button
           @click="showImportModal = true"
@@ -310,6 +322,29 @@
       @confirm="handleDelete"
       @cancel="showDeleteModal = false"
     />
+
+    <!-- Backup Management Modal -->
+    <div
+      v-if="showBackupManagement"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Backup Management</h2>
+          <button
+            @click="showBackupManagement = false"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="overflow-y-auto max-h-[calc(90vh-80px)]">
+          <BackupManagement />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -320,6 +355,7 @@ import { useNotificationStore } from '@/stores/notification'
 import SchoolFormModal from './SchoolFormModal.vue'
 import SchoolImportModal from './SchoolImportModal.vue'
 import EnhancedSchoolImportModal from './EnhancedSchoolImportModal.vue'
+import BackupManagement from './BackupManagement.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const schoolStore = useSchoolStore()
@@ -329,6 +365,7 @@ const notificationStore = useNotificationStore()
 const showFormModal = ref(false)
 const showImportModal = ref(false)
 const showEnhancedImportModal = ref(false)
+const showBackupManagement = ref(false)
 const showDeleteModal = ref(false)
 const editingSchool = ref(null)
 const schoolToDelete = ref(null)
