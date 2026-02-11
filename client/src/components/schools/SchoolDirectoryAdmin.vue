@@ -11,14 +11,27 @@
         </p>
       </div>
       <div class="flex gap-3">
+        <!-- Enhanced Import Dropdown -->
+        <div class="relative">
+          <button
+            @click="showEnhancedImportModal = true"
+            class="px-4 py-2 bg-heritageTeal text-white rounded-lg hover:bg-heritageTeal/90 transition-colors flex items-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            Bulk Import
+            <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-1">NEW</span>
+          </button>
+        </div>
+        
+        <!-- Legacy Import (Hidden but accessible) -->
         <button
           @click="showImportModal = true"
-          class="px-4 py-2 bg-heritageTeal text-white rounded-lg hover:bg-heritageTeal/90 transition-colors flex items-center gap-2"
+          class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+          title="Legacy Import (Old Version)"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-          </svg>
-          Bulk Import
+          Legacy
         </button>
         <button
           @click="openCreateModal"
@@ -275,11 +288,18 @@
       @save="handleSave"
     />
 
-    <!-- Import Modal -->
+    <!-- Legacy Import Modal -->
     <SchoolImportModal
       v-if="showImportModal"
       @close="showImportModal = false"
       @imported="handleImported"
+    />
+
+    <!-- Enhanced Import Modal (Smart Normalization) -->
+    <EnhancedSchoolImportModal
+      v-if="showEnhancedImportModal"
+      @close="showEnhancedImportModal = false"
+      @imported="handleEnhancedImported"
     />
 
     <!-- Delete Confirmation Modal -->
@@ -299,6 +319,7 @@ import { useSchoolStore } from '@/stores/schools'
 import { useNotificationStore } from '@/stores/notification'
 import SchoolFormModal from './SchoolFormModal.vue'
 import SchoolImportModal from './SchoolImportModal.vue'
+import EnhancedSchoolImportModal from './EnhancedSchoolImportModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const schoolStore = useSchoolStore()
@@ -307,6 +328,7 @@ const notificationStore = useNotificationStore()
 // State
 const showFormModal = ref(false)
 const showImportModal = ref(false)
+const showEnhancedImportModal = ref(false)
 const showDeleteModal = ref(false)
 const editingSchool = ref(null)
 const schoolToDelete = ref(null)
@@ -429,6 +451,17 @@ const handleImported = () => {
   showImportModal.value = false
   schoolStore.fetchSchools()
   notificationStore.success('Schools imported successfully')
+}
+
+const handleEnhancedImported = (result) => {
+  showEnhancedImportModal.value = false
+  schoolStore.fetchSchools()
+  schoolStore.fetchFilterOptions() // Refresh filter options with normalized data
+  
+  const totalProcessed = result.imported + result.updated
+  notificationStore.success(
+    `Import completed! ${totalProcessed} schools processed (${result.imported} new, ${result.updated} updated)`
+  )
 }
 
 const getTypeClass = (jenis) => {

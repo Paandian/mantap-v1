@@ -34,6 +34,41 @@ Negeri → PPD (dependent) → Bandar (dependent)
 - ✅ Query params not passing to school directory
 - ✅ Watchers clearing filters on initial load
 
+### 5. Enhanced Bulk Import System (NEW!)
+- ✅ **Smart Name Normalization:** Handles 100+ variations of state/city names
+- ✅ **Import Strategies:** Merge, Drop & Import, Backup & Replace
+- ✅ **Pre-Import Validation:** Preview data before importing
+- ✅ **Automatic Backups:** SQL backup generation before destructive operations
+- ✅ **Production-Safe:** Multiple safety checks and confirmations
+
+---
+
+## 📋 Recent Changes (Feb 11, 2026)
+
+### Major Feature: Enhanced Bulk Import
+**New Files Created:**
+- `server/utils/nameNormalizer.js` - Smart normalization engine
+- `server/utils/backupUtils.js` - SQL backup utilities
+- `server/controllers/enhancedImportController.js` - New import endpoints
+- `client/src/components/schools/EnhancedSchoolImportModal.vue` - Import wizard UI
+
+**New API Endpoints:**
+- `POST /api/schools/admin/import/validate` - Pre-import validation
+- `POST /api/schools/admin/import/execute` - Execute with strategy
+- `GET /api/schools/admin/import/backups` - List backups
+- `GET /api/schools/admin/import/backups/:filename` - Download backup
+
+**Capabilities:**
+- Automatically normalizes: `W.P. Kuala Lumpur` → `Kuala Lumpur`
+- Handles abbreviations: `Bdr` → `Bandar`, `Kg` → `Kampung`
+- City-specific rules: `PJ` → `Petaling Jaya`, `KL` → `Kuala Lumpur`
+- Creates SQL backups before dropping data
+- **Bug Fixes Applied (Feb 11):**
+  - Fixed database column error with backwards compatibility
+  - Fixed UI button visibility in modal
+  - Added migration for new columns (strategy, normalization_log)
+- 4-step import wizard with validation
+
 ---
 
 ## 📋 Recent Changes (Feb 10-11, 2026)
@@ -52,6 +87,7 @@ Negeri → PPD (dependent) → Bandar (dependent)
 - Migration: `003_normalize_negeri_casing.sql`
 - Migration: `004_fix_wilayah_persekutuan.sql`  
 - Migration: `005_complete_negeri_normalization.sql`
+- Migration: `006_add_enhanced_import_columns.sql` (NEW - adds strategy & normalization_log columns)
 
 ---
 
@@ -68,8 +104,13 @@ pm2 restart mantap-api
 
 ### Files Modified (Important)
 - `server/controllers/schoolController.js` - Backend API
+- `server/controllers/enhancedImportController.js` - NEW: Enhanced import system
+- `server/utils/nameNormalizer.js` - NEW: Smart name normalization
+- `server/utils/backupUtils.js` - NEW: SQL backup utilities
+- `server/routes/schools.js` - Added new import routes
 - `client/src/components/landing/SchoolsDirectory.vue` - Landing page
 - `client/src/views/schools/SchoolDirectory.vue` - School directory
+- `client/src/components/schools/EnhancedSchoolImportModal.vue` - NEW: Import wizard (✅ Integrated into admin dashboard)
 - `client/src/stores/schools.js` - Pinia store
 
 ---

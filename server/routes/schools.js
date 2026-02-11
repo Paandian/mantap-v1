@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const schoolController = require('../controllers/schoolController');
+const enhancedImportController = require('../controllers/enhancedImportController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // ============================================
@@ -145,6 +146,40 @@ router.post('/admin/import',
     requireRole(['super-admin', 'admin']), 
     upload.single('file'), 
     schoolController.bulkImportSchools
+);
+
+// ============================================
+// ENHANCED BULK IMPORT ROUTES (New System)
+// ============================================
+
+// Step 1: Validate and preview import data
+router.post('/admin/import/validate',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    upload.single('file'),
+    enhancedImportController.validateImportData
+);
+
+// Step 2: Execute import with strategy
+router.post('/admin/import/execute',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    upload.single('file'),
+    enhancedImportController.executeBulkImport
+);
+
+// List available backups
+router.get('/admin/import/backups',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    enhancedImportController.listBackups
+);
+
+// Download backup file
+router.get('/admin/import/backups/:filename',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    enhancedImportController.downloadBackup
 );
 
 module.exports = router;
