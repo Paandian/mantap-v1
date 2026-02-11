@@ -33,12 +33,15 @@ Negeri → PPD (dependent) → Bandar (dependent)
 - ✅ Filter dropdowns not populating
 - ✅ Query params not passing to school directory
 - ✅ Watchers clearing filters on initial load
+- ✅ Bandar filter not auto-refreshing
+- ✅ MySQL timeout during import validation
 
 ### 5. Enhanced Bulk Import System (NEW!)
 - ✅ **Smart Name Normalization:** Handles 100+ variations of state/city names
 - ✅ **Import Strategies:** Merge, Drop & Import, Backup & Replace
 - ✅ **Pre-Import Validation:** Preview data before importing
 - ✅ **Automatic Backups:** SQL backup generation before destructive operations
+- ✅ **Backup Management Dashboard:** Full CRUD for backup files
 - ✅ **Production-Safe:** Multiple safety checks and confirmations
 
 ---
@@ -50,22 +53,33 @@ Negeri → PPD (dependent) → Bandar (dependent)
 - `server/utils/nameNormalizer.js` - Smart normalization engine
 - `server/utils/backupUtils.js` - SQL backup utilities
 - `server/controllers/enhancedImportController.js` - New import endpoints
+- `server/controllers/backupManagementController.js` - Backup management API
 - `client/src/components/schools/EnhancedSchoolImportModal.vue` - Import wizard UI
+- `client/src/components/schools/BackupManagement.vue` - Backup management dashboard (NEW!)
 
 **New API Endpoints:**
 - `POST /api/schools/admin/import/validate` - Pre-import validation
 - `POST /api/schools/admin/import/execute` - Execute with strategy
 - `GET /api/schools/admin/import/backups` - List backups
 - `GET /api/schools/admin/import/backups/:filename` - Download backup
+- `GET /api/schools/admin/import/backups/list` - List backups with details
+- `GET /api/schools/admin/import/backups/stats` - Backup statistics
+- `DELETE /api/schools/admin/import/backups/:filename` - Delete backup
+- `POST /api/schools/admin/import/backups/:filename/restore` - Restore database
+- `DELETE /api/schools/admin/import/backups/cleanup` - Auto cleanup
 
 **Capabilities:**
 - Automatically normalizes: `W.P. Kuala Lumpur` → `Kuala Lumpur`
 - Handles abbreviations: `Bdr` → `Bandar`, `Kg` → `Kampung`
 - City-specific rules: `PJ` → `Petaling Jaya`, `KL` → `Kuala Lumpur`
 - Creates SQL backups before dropping data
+- Backup Management Dashboard: View, download, restore, delete, auto-cleanup
 - **Bug Fixes Applied (Feb 11):**
   - Fixed database column error with backwards compatibility
   - Fixed UI button visibility in modal
+  - Fixed MySQL timeout during import validation
+  - Fixed bandar filter auto-refresh (added missing watcher)
+  - Fixed Express route ordering for backup API endpoints
   - Added migration for new columns (strategy, normalization_log)
 - 4-step import wizard with validation
 

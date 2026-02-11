@@ -40,13 +40,26 @@ All notable changes to Mantap.work project.
   - Normalization audit trail stored in import logs
 
 #### Technical Implementation
-- **New Utilities:**
+- **New Utilities & Controllers:**
   - `server/utils/nameNormalizer.js` - Smart name normalization engine
   - `server/utils/backupUtils.js` - SQL backup generation and management
   - `server/controllers/enhancedImportController.js` - Enhanced import endpoints
+  - `server/controllers/backupManagementController.js` - Backup management API
+    - List all backups with metadata
+    - Delete specific backups
+    - Restore database from backup
+    - Auto cleanup with age/count rules
+    - Statistics and reporting
 
-- **New UI Component:**
+- **New UI Components:**
   - `EnhancedSchoolImportModal.vue` - 4-step import wizard with validation (✅ Integrated into admin dashboard)
+  - `BackupManagement.vue` - Complete backup management dashboard
+    - View all backups with statistics (count, size, dates)
+    - Download backup files
+    - Restore database from backup
+    - Delete individual backups
+    - Auto cleanup with configurable rules
+    - Full CRUD operations with confirmation modals
 
 #### Bug Fixes (2026-02-11)
 - **Fixed database column error:** Added backwards compatibility for `strategy` and `normalization_log` columns
@@ -57,6 +70,15 @@ All notable changes to Mantap.work project.
   - Compact strategy selection cards
   - Reduced padding throughout Step 1
   - Better scroll area calculation
+- **Fixed MySQL timeout during import:** Reorganized validation to query database first before parsing Excel
+  - Prevents connection timeout errors on large imports
+  - Improved error handling with graceful fallbacks
+- **Fixed bandar filter auto-refresh:** Added missing Vue watcher for `selectedCity`
+  - Bandar filter now auto-refreshes results like other filters
+  - Consistent behavior across all filter dropdowns
+- **Fixed bandar filter auto-refresh:** Added missing Vue watcher for `selectedCity`
+  - Bandar filter now auto-refreshes results like other filters
+  - Consistent behavior across all filter dropdowns
 
 #### Benefits
 - **Eliminates manual data cleaning** - Upload any Excel format, system auto-normalizes
