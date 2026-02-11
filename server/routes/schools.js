@@ -169,43 +169,18 @@ router.post('/admin/import/execute',
     enhancedImportController.executeBulkImport
 );
 
-// List available backups
-router.get('/admin/import/backups',
-    authenticateToken,
-    requireRole(['super-admin', 'admin']),
-    enhancedImportController.listBackups
-);
-
-// Download backup file
-router.get('/admin/import/backups/:filename',
-    authenticateToken,
-    requireRole(['super-admin', 'admin']),
-    enhancedImportController.downloadBackup
-);
-
 // ============================================
 // BACKUP MANAGEMENT ROUTES
 // ============================================
+
+// IMPORTANT: These routes must come BEFORE the '/admin/import/backups/:filename' route
+// Otherwise Express will treat "list", "stats", "cleanup" as filenames
 
 // List all backups with details
 router.get('/admin/import/backups/list',
     authenticateToken,
     requireRole(['super-admin', 'admin']),
     backupManagementController.listAllBackups
-);
-
-// Delete specific backup
-router.delete('/admin/import/backups/:filename',
-    authenticateToken,
-    requireRole(['super-admin', 'admin']),
-    backupManagementController.deleteBackup
-);
-
-// Restore database from backup
-router.post('/admin/import/backups/:filename/restore',
-    authenticateToken,
-    requireRole(['super-admin', 'admin']),
-    backupManagementController.restoreBackup
 );
 
 // Auto cleanup old backups
@@ -220,6 +195,34 @@ router.get('/admin/import/backups/stats',
     authenticateToken,
     requireRole(['super-admin', 'admin']),
     backupManagementController.getBackupStats
+);
+
+// Restore database from backup
+router.post('/admin/import/backups/:filename/restore',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.restoreBackup
+);
+
+// Delete specific backup
+router.delete('/admin/import/backups/:filename',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.deleteBackup
+);
+
+// List available backups (basic - old controller)
+router.get('/admin/import/backups',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    enhancedImportController.listBackups
+);
+
+// Download backup file
+router.get('/admin/import/backups/:filename',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    enhancedImportController.downloadBackup
 );
 
 module.exports = router;
