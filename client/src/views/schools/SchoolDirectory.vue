@@ -537,6 +537,12 @@ watch([selectedJenis, selectedPeringkat], () => {
   }
 })
 
+watch(selectedCity, () => {
+  if (!isInitialLoad) {
+    applyFilters()
+  }
+})
+
 // Methods
 const fetchPPDData = async () => {
   try {
