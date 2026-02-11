@@ -28,6 +28,15 @@ exports.validateImportData = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Get database stats FIRST (before any long operations that could timeout)
+    let currentTotal = 0;
+    try {
+      const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM schools');
+      currentTotal = countResult[0].total;
+    } catch (dbError) {
+      console.error('Warning: Could not get database count:', dbError.message);
+    }
+
     const XLSX = require('xlsx');
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -73,37 +82,6 @@ exports.validateImportData = async (req, res) => {
 
     // Get statistics
     const stats = getNormalizationStats(normalizedData);
-    
-    // Check for existing schools - use batch query for better performance
-    const existingSchools = [];
-    try {
-      // Get all school codes from the first 50 records
-      const schoolCodes = normalizedData.slice(0, 50).map(s => s.kod_sekolah).filter(Boolean);
-      
-      if (schoolCodes.length > 0) {
-        // Build placeholders for IN clause
-        const placeholders = schoolCodes.map(() => '?').join(',');
-        const [existing] = await pool.execute(
-          `SELECT kod_sekolah, nama_sekolah FROM schools WHERE kod_sekolah IN (${placeholders})`,
-          schoolCodes
-        );
-        
-        existing.forEach(school => {
-          existingSchools.push({
-            kod_sekolah: school.kod_sekolah,
-            nama_sekolah: school.nama_sekolah,
-            action: 'will_update'
-          });
-        });
-      }
-    } catch (checkError) {
-      console.error('Error checking existing schools:', checkError);
-      // Continue without existing school check - not critical
-    }
-
-    // Get current database stats
-    const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM schools');
-    const currentTotal = countResult[0].total;
 
     res.json({
       success: true,
@@ -111,8 +89,8 @@ exports.validateImportData = async (req, res) => {
         totalRows: schoolsData.length,
         sample: normalizedData.slice(0, 5),
         normalizationStats: stats,
-        existingSchools: existingSchools.slice(0, 20),
-        existingCount: existingSchools.length,
+        existingSchools: [], // Skip this check to avoid timeout
+        existingCount: 0,
         currentDatabaseTotal: currentTotal
       }
     });
