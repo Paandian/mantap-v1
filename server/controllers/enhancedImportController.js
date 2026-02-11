@@ -74,20 +74,31 @@ exports.validateImportData = async (req, res) => {
     // Get statistics
     const stats = getNormalizationStats(normalizedData);
     
-    // Check for existing schools
+    // Check for existing schools - use batch query for better performance
     const existingSchools = [];
-    for (const school of normalizedData.slice(0, 100)) { // Check first 100
-      const [existing] = await pool.execute(
-        'SELECT id, kod_sekolah, nama_sekolah FROM schools WHERE kod_sekolah = ?',
-        [school.kod_sekolah]
-      );
-      if (existing.length > 0) {
-        existingSchools.push({
-          kod_sekolah: school.kod_sekolah,
-          nama_sekolah: existing[0].nama_sekolah,
-          action: 'will_update'
+    try {
+      // Get all school codes from the first 50 records
+      const schoolCodes = normalizedData.slice(0, 50).map(s => s.kod_sekolah).filter(Boolean);
+      
+      if (schoolCodes.length > 0) {
+        // Build placeholders for IN clause
+        const placeholders = schoolCodes.map(() => '?').join(',');
+        const [existing] = await pool.execute(
+          `SELECT kod_sekolah, nama_sekolah FROM schools WHERE kod_sekolah IN (${placeholders})`,
+          schoolCodes
+        );
+        
+        existing.forEach(school => {
+          existingSchools.push({
+            kod_sekolah: school.kod_sekolah,
+            nama_sekolah: school.nama_sekolah,
+            action: 'will_update'
+          });
         });
       }
+    } catch (checkError) {
+      console.error('Error checking existing schools:', checkError);
+      // Continue without existing school check - not critical
     }
 
     // Get current database stats

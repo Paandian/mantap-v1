@@ -8,7 +8,7 @@ export default {
     login: "Log Masuk",
   },
   hero: {
-    headline: "Belajar Jadi Mantap!!!",
+    headline: "Belajar Jadi Mantap!",
     subheadline:
       "Platform pendidikan terbaik Malaysia yang menghubungkan pelajar dengan tutor terverifikasi, mentor berpengalaman, dan sumber pembelajaran berkualiti.",
     ticker_title: "Kemaskini Terkini",
