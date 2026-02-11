@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const schoolController = require('../controllers/schoolController');
 const enhancedImportController = require('../controllers/enhancedImportController');
+const backupManagementController = require('../controllers/backupManagementController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // ============================================
@@ -180,6 +181,45 @@ router.get('/admin/import/backups/:filename',
     authenticateToken,
     requireRole(['super-admin', 'admin']),
     enhancedImportController.downloadBackup
+);
+
+// ============================================
+// BACKUP MANAGEMENT ROUTES
+// ============================================
+
+// List all backups with details
+router.get('/admin/import/backups/list',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.listAllBackups
+);
+
+// Delete specific backup
+router.delete('/admin/import/backups/:filename',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.deleteBackup
+);
+
+// Restore database from backup
+router.post('/admin/import/backups/:filename/restore',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.restoreBackup
+);
+
+// Auto cleanup old backups
+router.delete('/admin/import/backups/cleanup',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.cleanupBackups
+);
+
+// Get backup statistics
+router.get('/admin/import/backups/stats',
+    authenticateToken,
+    requireRole(['super-admin', 'admin']),
+    backupManagementController.getBackupStats
 );
 
 module.exports = router;
