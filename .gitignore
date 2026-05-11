@@ -12,3 +12,7 @@ server/public/uploads/*
 !server/public/uploads/.gitkeep
 server/public/uploads/avatars/*
 !server/public/uploads/avatars/.gitkeep
+
+# Ignore local editor/service folders
+.opencode/
+.shared/
